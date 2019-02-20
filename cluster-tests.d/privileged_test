@@ -4,5 +4,6 @@ for namespace in ${USER_NAMESPACES}; do
     if [ "${count_privileged}" -ne "0" ]; then
       echo "pod ${pod} in namespace ${namespace} runs with privileged security context"
       exit 1
+    fi
   done
 done
