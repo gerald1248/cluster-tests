@@ -1,7 +1,7 @@
 for namespace in ${USER_NAMESPACES}; do
   for deployment in `kubectl get deployments -n ${namespace} -o json | jq -r '.items[].metadata.name'`; do
     resources_count=`kubectl get deployment/${deployment} -n ${namespace} -o json | jq -r '.spec.template.spec.containers[].resources | select(.limits.cpu and .limits.memory and .requests.cpu and .requests.memory)' | grep -c "[[:alnum:]]"`
-    if [ "${resources_count}" != "0" ]; then
+    if [ "${resources_count}" -eq "0" ]; then
       echo "missing resource limits/requests in deployment ${deployment} in namespace ${namespace}"
     fi
   done

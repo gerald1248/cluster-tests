@@ -1,8 +1,8 @@
-test_storage_encrypted() {
-  STORAGECLASSES=$(kubectl get pv -o json | jq -r '.items[].spec.storageClassName')
-  for STORAGECLASS in ${STORAGECLASSES}; do
-    ENCRYPTED=$(kubectl get sc/${STORAGECLASS} -o json | jq -r '.parameters.encrypted')
-    assertEquals " storageclass ${STORAGECLASS} is unencrypted;" "true" "${ENCRYPTED}" 
-  done
-}
-suite_addTest test_storage_encrypted
+STORAGECLASSES=$(kubectl get pv -o json | jq -r '.items[].spec.storageClassName')
+for STORAGECLASS in ${STORAGECLASSES}; do
+  ENCRYPTED=$(kubectl get sc/${STORAGECLASS} -o json | jq -r '.parameters.encrypted')
+  if [ "${ENCRYPTED}" == "true" ]; then
+    echo "storageclass ${STORAGECLASS} is unencrypted"
+    exit 1
+  fi
+done

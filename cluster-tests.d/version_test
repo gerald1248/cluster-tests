@@ -1,17 +1,14 @@
-test_version() {
-  SERVER_MAJOR=`kubectl version -o json | jq -r .serverVersion.major`
-  SERVER_MINOR=`kubectl version -o json | jq -r .serverVersion.minor`
-  KUBELET_VERSION=`kubectl get nojsonpath="{.items[*].status.nodeInfo.kubeletVersion}"`
-
-  MATCH_STRING="v{$SERVER_MAJOR}.${SERVER_MINOR}"
-
-  if not begins_with "KUBELET_VERSION" "${MATCH_STRING}"; then
-    fail " server and kubelet versions must match; server version: ${KUBELET_VERSION} doesn't start with ${MATCH_STRING}"
-  fi
-}
-
 begins_with() {
   case $2 in "$1"*) true;; *) false;; esac
 }
 
-suite_addTest test_version
+SERVER_MAJOR=`kubectl version -o json | jq -r .serverVersion.major`
+SERVER_MINOR=`kubectl version -o json | jq -r .serverVersion.minor`
+KUBELET_VERSION=`kubectl get nojsonpath="{.items[*].status.nodeInfo.kubeletVersion}"`
+
+MATCH_STRING="v{$SERVER_MAJOR}.${SERVER_MINOR}"
+
+if not begins_with "KUBELET_VERSION" "${MATCH_STRING}"; then
+  echo "server and kubelet versions must match; server version: ${KUBELET_VERSION} doesn't start with ${MATCH_STRING}"
+  exit 1
+fi
