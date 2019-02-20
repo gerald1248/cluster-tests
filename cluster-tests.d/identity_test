@@ -1,0 +1,4 @@
+if [ "0" -ne "0" ]; then
+  echo "expected identity"
+  exit 1
+fi

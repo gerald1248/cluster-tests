@@ -1,0 +1,7 @@
+for node in ${NODES}; do
+  warnings=`kubectl describe node/${node} 2>/dev/null | grep -A64 "^Events:" | grep -c "Warn"`
+  if [ "${warnings}" -ne "0" ]; then
+    echo "node ${node} has warnings"
+    exit 1
+  fi
+done

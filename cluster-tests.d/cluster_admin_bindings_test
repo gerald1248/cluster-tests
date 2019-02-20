@@ -1,0 +1,8 @@
+sa_with_cluster_admin=`kubectl get clusterrolebindings -o wide | grep "cluster-admin" | awk '{ print $5 }' | grep "[[:alnum:]]" | sed 's/^/"/' | sed 's/$/"/'`
+trimmed=`echo "${sa_with_cluster_admin}" | tr -d '[[:space:]]'`
+if [ ! -z "${trimmed}" ]; then
+  count=`echo ${sa_with_cluster_admin} | wc -l`
+  if [ ${count} -ne "0" ]; then
+    echo "there must be no service accounts with cluster admin rights, found ${count}: [ ${sa_with_cluster_admin} ]"
+  fi
+fi

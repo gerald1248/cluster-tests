@@ -1,0 +1,9 @@
+test_security_context_privileged() {
+  for namespace in ${USER_NAMESPACES}; do
+    for pod in `kubectl get pods --field-selector=status.phase=Running -n ${namespace} 2>/dev/null | cut -d' ' -f1 | tail -n +2`; do
+      count_privileged=`kubectl get po/${pod} -n ${namespace} -o json 2>/dev/null | jq -r '..|.securityContext?.privileged' | grep -c true`
+      assertEquals " pod ${pod} in namespace ${namespace} runs with privileged security context;" 0 ${count_privileged}
+    done
+  done
+}
+suite_addTest test_security_context_privileged

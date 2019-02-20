@@ -1,0 +1,16 @@
+for svc in ${HA_SERVICES}; do
+  nodes=`kubectl get po --all-namespaces -o wide | grep ${svc} | \
+    awk '{ print $8 }'`
+  zones=""
+  for node in ${nodes}; do
+    zones="${zones} `kubectl get node/${node} -L "failure-domain.beta.kubernetes.io/zone" | \
+      awk '{print $6}' | \
+      tail -n +2`"
+  done
+  zone_count=`echo ${zones} | tr ' ' '\n' | sort -u | wc -l`
+  ha=false
+  if [ "${zone_count}" -lt "2" ]; then
+    echo "${svc} must be distributed across two or more zones"
+    exit 1
+  fi
+done

@@ -1,0 +1,4 @@
+**/cluster-tests
+**/.DS_Store
+**/ignore/
+go.sum

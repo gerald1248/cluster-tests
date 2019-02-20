@@ -1,0 +1,9 @@
+test_root() {
+  for namespace in ${USER_NAMESPACES}; do
+    for pod in `kubectl get po -n ${namespace} --no-headers 2>/dev/null | cut -d' ' -f1`; do
+      uid=`kubectl exec -n ${namespace} ${pod} -- id -u`
+      assertNotEquals " pod ${pod} in namespace ${namespace} runs as root;" "0" "${uid}"
+    done
+  done
+}
+suite_addTest test_root
