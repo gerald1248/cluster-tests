@@ -4,7 +4,7 @@ begins_with() {
 
 SERVER_MAJOR=`kubectl version -o json | jq -r .serverVersion.major`
 SERVER_MINOR=`kubectl version -o json | jq -r .serverVersion.minor`
-KUBELET_VERSION=`kubectl get nojsonpath="{.items[*].status.nodeInfo.kubeletVersion}"`
+KUBELET_VERSION=`kubectl get nodes -o jsonpath="{.items[*].status.nodeInfo.kubeletVersion}"`
 
 MATCH_STRING="v{$SERVER_MAJOR}.${SERVER_MINOR}"
 

@@ -1,10 +1,10 @@
 package main
 
 import (
-	"bytes"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -12,47 +12,84 @@ import (
 	au "github.com/logrusorgru/aurora"
 )
 
-func runTests(datadir string) error {
-	tests, err := filepath.Glob(fmt.Sprintf("%s/*test", datadir))
+func runTests(datadir string, outputdir string) error {
+	tests, err := filepath.Glob(fmt.Sprintf("%s/test*", datadir))
 	if err != nil {
-		return err
+		return fmt.Errorf("can't glob test files (%s)", err.Error())
 	}
 
-	var successCount, failureCount int
+	userNamespaces, _, err := execShellScript(fmt.Sprintf("%s/get_user_namespaces", datadir))
+	if err != nil {
+		return fmt.Errorf("can't determine user namespaces (%s)", err.Error())
+	}
+	nodes, _, err := execShellScript(fmt.Sprintf("%s/get_nodes", datadir))
+	if err != nil {
+		return fmt.Errorf("can't fetch cluster nodes (%s)", err.Error())
+	}
+
+	var successCount, failureCount, maxCount int
 	successCount = 0
 	failureCount = 0
+	maxCount = 0
+
+	var record Record
+
+	startTime := time.Now()
+
 	for _, match := range tests {
 		t := time.Now()
 		basename := filepath.Base(match)
 
-		os.Setenv("USER_NAMESPACES", "default kube-public kube-system")
-		os.Setenv("NODES", "minikube")
+		// TODO: fetch from env_* scripts
+		os.Setenv("USER_NAMESPACES", userNamespaces)
+		os.Setenv("NODES", nodes)
 		os.Setenv("HA_SERVICES", "")
+		os.Setenv("CLUSTER_TESTS_EXIT", "")
 
 		fmt.Printf("[%s] %s... ", t.Format("2006-01-02 15:04:05"), au.Bold(au.Cyan(basename)))
-		var stdout, stderr bytes.Buffer
-		cmd := exec.Command("bash", match)
-		cmd.Stdout = &stdout
-		cmd.Stderr = &stderr
 
-		// ignore stderr for now
+		stdout, _, err := execShellScript(match)
 
-		err = cmd.Run()
 		if err != nil {
-			message := strings.TrimRight(string(stdout.Bytes()), " \n")
+			message := strings.TrimRight(stdout, " \n")
 			if len(message) == 0 {
 				fmt.Printf("%s\n", au.Bold(au.Red("failed")))
 			} else {
 				fmt.Printf("%s: %s\n", au.Bold(au.Red("failed")), message)
 			}
 			failureCount++
+
+			record.FailLog = append(record.FailLog, fmt.Sprintf("%s %s %s", basename, au.Bold(au.Red("failed")), au.Bold(au.Cyan(message))))
 		} else {
 			fmt.Printf("%s\n", au.Bold(au.Green("ok")))
 			successCount++
+
+			record.PassLog = append(record.PassLog, fmt.Sprintf("%s %s", basename, au.Bold(au.Green("ok"))))
 		}
 	}
 
+	recordTime := time.Now()
+
+	record.Time = fmt.Sprintf("%s", recordTime.Format("2006-01-02 15:04:05"))
+	record.Fail = failureCount
+	record.Pass = successCount
+	record.Duration = int(time.Since(startTime).Seconds() + 0.5)
+
+	recordFilename := fmt.Sprintf("%s/%d.json", globalOutputdir, recordTime.Unix())
+
+	recordJSON, err := json.Marshal(record)
+	if err != nil {
+		fmt.Errorf("can't marshal record (%s)", err.Error())
+	}
+	err = ioutil.WriteFile(recordFilename, recordJSON, 0644)
+	if err != nil {
+		fmt.Errorf("can't write record to file %s (%s)", recordFilename, err.Error())
+	}
+
 	total := failureCount + successCount
+	if total > maxCount {
+		maxCount = total
+	}
 	plural := "s"
 	if total == 1 {
 		plural = ""

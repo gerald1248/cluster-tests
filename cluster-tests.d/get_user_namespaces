@@ -1,0 +1,1 @@
+kubectl get ns 2>/dev/null | grep -v "\(kube-public\|kube-system\)" | cut -d ' ' -f1 | tail -n +2

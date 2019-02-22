@@ -1,0 +1,4 @@
+fail() {
+  echo "${1}"
+  CLUSTER_TESTS_EXIT = "${CLUSTER_TESTS_EXIT}F"
+}

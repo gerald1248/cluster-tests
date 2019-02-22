@@ -1,15 +1,16 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os/exec"
 	"strings"
+
+	term "github.com/buildkite/terminal"
 )
 
+// PostStruct wraps minimal POST requests
 type PostStruct struct {
 	Buffer string
 }
@@ -47,7 +48,7 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
   <div class="col-sm-2"><a href="/api/v1/metrics/">/api/v1/metrics/</a></div>
   <div class="col-sm-10">metrics endpoint</div>
 </div>`)
-	fmt.Fprintf(w, page(buffer))
+	fmt.Fprintf(w, page("cluster ID", "", buffer))
 	return
 }
 
@@ -63,7 +64,7 @@ func metricsHandler(w http.ResponseWriter, r *http.Request) {
 	_, err := processBytes([]byte(buffer), &output)
 	if err != nil {
 		sData := fmt.Sprintf("<p>Can't process input data: %s</p>", err)
-		fmt.Fprintf(w, page(sData))
+		fmt.Fprintf(w, page("cluster ID", "", sData))
 		return
 	}
 
@@ -73,63 +74,84 @@ func metricsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleGet(w *http.ResponseWriter, r *http.Request) {
-	var buffer, dot, output string
 
-	output = "dot"
-
-	dot, err := processBytes([]byte(buffer), &output)
+	vegaLiteDataBytes, maxTests, logEntries, err := getHistoryData()
 	if err != nil {
-		sData := fmt.Sprintf("<p>Can't process input data: %s</p>", err)
-		fmt.Fprintf(*w, page(sData))
-		return
+		// empty byte array returned
+		fmt.Sprintf("can't fetch JSON data (%s)", err.Error())
 	}
 
-	cmd := exec.Command("dot", "-Tsvg")
-	cmd.Stdin = strings.NewReader(dot)
-	var svg bytes.Buffer
-	cmd.Stdout = &svg
-	err = cmd.Run()
-	if err != nil {
-		sDot := fmt.Sprintf("<p>Graphviz conversion failed: %s</p>", err)
-		fmt.Fprintf(*w, page(sDot))
-		return
-	}
+	terminal := strings.Join(logEntries, "\n")
 
-	percentageIsolated := 0
-	percentageCovered := 0
+	terminalBytes := []byte(terminal)
 
-	colorClassIsolation := "progress-bar-success"
-	if percentageIsolated < 50 {
-		colorClassIsolation = "progress-bar-danger"
-	} else if percentageIsolated < 75 {
-		colorClassIsolation = "progress-bar-warning"
-	}
+	adjust := int(maxTests / 2)
 
-	colorClassCoverage := "progress-bar-success"
-	if percentageCovered < 50 {
-		colorClassCoverage = "progress-bar-danger"
-	} else if percentageCovered < 75 {
-		colorClassCoverage = "progress-bar-warning"
-	}
+	var chart = fmt.Sprintf(`
+    <div id="vis"></div>
 
-	buffer = fmt.Sprintf(`
-<div>%s</div>
-<div class="progress">
-  <div class="progress-bar %s" style="width: %d%%%%" role="progressbar" aria-valuenow="%d" aria-valuemin="0" aria-valuemax="100">%d%%%% isolation</div>
-</div>
-<div class="progress">
-  <div class="progress-bar %s" style="width: %d%%%%" role="progressbar" aria-valuenow="%d" aria-valuemin="0" aria-valuemax="100">%d%%%% namespace coverage</div>
-</div>`,
-		strings.Replace(svg.String(), "Times,serif", "sans-serif", -1),
-		colorClassIsolation,
-		percentageIsolated,
-		percentageIsolated,
-		percentageIsolated,
-		colorClassCoverage,
-		percentageCovered,
-		percentageCovered,
-		percentageCovered)
-	fmt.Fprintf(*w, page(buffer))
+    <script type="text/javascript">
+	var yourVlSpec = {
+		"$schema": "https://vega.github.io/schema/vega-lite/v2.0.json",
+		"data": {
+		  "values": %s
+		},
+		"width": 400,
+		"height": 200,
+		"mark": "area",
+		"encoding": {
+		  "x": {
+			"field": "time",
+			"type": "temporal"
+		  },
+		  "y": {
+			"field": "tests",
+			"type": "quantitative",
+			"scale": {
+			  "domain": [
+				0,
+				%d
+			  ]
+			}
+		  },
+		  "color": {
+			"field": "result",
+			"type": "nominal",
+			"legend": {
+				"labelColor": "#fff",
+				"titleColor": "#fff"
+			},
+			"scale": {
+			  "domain": [
+				"PASS",
+				"FAIL"
+			  ],
+			  "range": [
+				"#2ECC40",
+				"#FF4136"
+			  ]
+			}
+		  }
+		},
+		"config": {
+		  "axis": {
+			"labelFont": "sans-serif",
+			"titleFont": "sans-serif",
+			"labelColor": "white",
+			"titleColor": "white"
+		  },
+		  "axisX": {
+			"labelAngle": 0
+		  }
+		}
+	  }
+	  vegaEmbed('#vis', yourVlSpec);
+	</script>`, vegaLiteDataBytes, maxTests+adjust) // alternatively, use staticTextVegaLiteData
+
+	log := fmt.Sprintf(`<div class="term-container">%s</div>`, string(term.Render(terminalBytes)))
+
+	// TODO: fetch actual context
+	fmt.Fprintf(*w, page(globalContext, chart, log))
 }
 
 func handlePost(w *http.ResponseWriter, r *http.Request) {
