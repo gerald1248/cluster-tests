@@ -4,7 +4,7 @@ import "bytes"
 import "encoding/json"
 import "fmt"
 
-func writeJson(percentageIsolatedInt int, percentageNamespaceCoverageInt int, buffer *bytes.Buffer) {
+func writeJSON(percentageIsolatedInt int, percentageNamespaceCoverageInt int, buffer *bytes.Buffer) {
 	result := Result{percentageIsolatedInt, percentageNamespaceCoverageInt}
 	json, err := json.Marshal(&result)
 	if err != nil {

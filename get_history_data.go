@@ -7,31 +7,37 @@ import (
 	"path/filepath"
 )
 
-func getHistoryData() ([]byte, int, []string, error) {
+func getHistoryData() ([]byte, []byte, int, []string, string, bool, error) {
+	failed := false
 	files, err := filepath.Glob(fmt.Sprintf("%s/*.json", globalOutputdir))
 	if err != nil {
-		return nil, 0, nil, fmt.Errorf("can't glob test files (%s)", err.Error())
+		return nil, nil, 0, nil, "", failed, fmt.Errorf("can't glob test files (%s)", err.Error())
 	}
 
 	var items []VegaLiteItem
+	var durationItems []VegaLiteDurationItem
 	var logEntries []string
+	var logHead string
 	maxTests := 0
 	for i, file := range files {
 		var record Record
 		b, err := ioutil.ReadFile(file)
 		if err != nil {
-			return nil, 0, nil, fmt.Errorf("can't read %s (%s)", file, err.Error())
+			return nil, nil, 0, nil, "", failed, fmt.Errorf("can't read %s (%s)", file, err.Error())
 		}
 
 		err = json.Unmarshal(b, &record)
 
 		if err != nil {
-			return nil, 0, nil, fmt.Errorf("invalid JSON (%s)", err.Error())
+			return nil, nil, 0, nil, "", failed, fmt.Errorf("invalid JSON (%s)", err.Error())
 		}
 
-		// populate
-		items = append(items, VegaLiteItem{record.Fail, record.Time, "FAIL"})
+		// populate main result history
 		items = append(items, VegaLiteItem{record.Pass, record.Time, "PASS"})
+		items = append(items, VegaLiteItem{record.Fail, record.Time, "FAIL"})
+
+		// populate
+		durationItems = append(durationItems, VegaLiteDurationItem{record.Duration, record.Time})
 
 		sum := record.Fail + record.Pass
 		if sum > maxTests {
@@ -45,13 +51,20 @@ func getHistoryData() ([]byte, int, []string, error) {
 			for _, log := range record.PassLog {
 				logEntries = append(logEntries, log)
 			}
+			logHead = record.Head
+			failed = len(record.FailLog) > 0
 		}
 	}
 
-	json, err := json.Marshal(items)
+	jsonResults, err := json.Marshal(items)
 	if err != nil {
-		return nil, 0, nil, fmt.Errorf("Can't marshal Vega Lite items (%s)", err.Error())
+		return nil, nil, 0, nil, "", failed, fmt.Errorf("Can't marshal result items (%s)", err.Error())
 	}
 
-	return json, maxTests, logEntries, nil
+	jsonDurations, err := json.Marshal(durationItems)
+	if err != nil {
+		return nil, nil, 0, nil, "", failed, fmt.Errorf("Can't marshal duration items (%s)", err.Error())
+	}
+
+	return jsonResults, jsonDurations, maxTests, logEntries, logHead, failed, nil
 }

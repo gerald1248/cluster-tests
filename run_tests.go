@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -33,6 +34,7 @@ func runTests(datadir string, outputdir string) error {
 	maxCount = 0
 
 	var record Record
+	record.Histogram = map[string]int{} // initialise map
 
 	startTime := time.Now()
 
@@ -59,7 +61,15 @@ func runTests(datadir string, outputdir string) error {
 			}
 			failureCount++
 
+			// append to failure log
 			record.FailLog = append(record.FailLog, fmt.Sprintf("%s %s %s", basename, au.Bold(au.Red("failed")), au.Bold(au.Cyan(message))))
+
+			// updatehistogram
+			if value, ok := record.Histogram[basename]; ok {
+				record.Histogram[basename] = value + 1
+			} else {
+				record.Histogram[basename] = 1
+			}
 		} else {
 			fmt.Printf("%s\n", au.Bold(au.Green("ok")))
 			successCount++
@@ -73,18 +83,12 @@ func runTests(datadir string, outputdir string) error {
 	record.Time = fmt.Sprintf("%s", recordTime.Format("2006-01-02 15:04:05"))
 	record.Fail = failureCount
 	record.Pass = successCount
-	record.Duration = int(time.Since(startTime).Seconds() + 0.5)
+	//record.Duration = int(time.Since(startTime).Seconds() + 0.5)
+
+	rand.Seed(64)
+	record.Duration = int(time.Since(startTime).Seconds()+0.5) + rand.Intn(10)
 
 	recordFilename := fmt.Sprintf("%s/%d.json", globalOutputdir, recordTime.Unix())
-
-	recordJSON, err := json.Marshal(record)
-	if err != nil {
-		fmt.Errorf("can't marshal record (%s)", err.Error())
-	}
-	err = ioutil.WriteFile(recordFilename, recordJSON, 0644)
-	if err != nil {
-		fmt.Errorf("can't write record to file %s (%s)", recordFilename, err.Error())
-	}
 
 	total := failureCount + successCount
 	if total > maxCount {
@@ -97,9 +101,20 @@ func runTests(datadir string, outputdir string) error {
 	fmt.Printf("Ran %d test%s\n", total, plural)
 
 	if failureCount == 0 {
-		fmt.Printf("%s\n", au.Bold(au.Green("OK")))
+		record.Head = fmt.Sprintf("%s\n", au.Bold(au.Green("OK")))
 	} else {
-		fmt.Printf("%s (failures=%d)\n", au.Bold(au.Red("FAILED")), failureCount)
+		record.Head = fmt.Sprintf("%s (failures=%d)\n", au.Bold(au.Red("FAILED")), failureCount)
 	}
+	fmt.Printf("%s", record.Head)
+
+	recordJSON, err := json.Marshal(record)
+	if err != nil {
+		return fmt.Errorf("can't marshal record (%s)", err.Error())
+	}
+	err = ioutil.WriteFile(recordFilename, recordJSON, 0644)
+	if err != nil {
+		return fmt.Errorf("can't write record to file %s (%s)", recordFilename, err.Error())
+	}
+
 	return nil
 }

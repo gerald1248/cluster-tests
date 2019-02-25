@@ -29,10 +29,9 @@ func main() {
 	globalDatadir = *datadir
 	globalOutputdir = *outputdir
 
-	context, _, err := execShellScript(fmt.Sprintf("%s/get_context", datadir))
+	context, _, err := execShellScript(fmt.Sprintf("%s/get_context", *datadir))
 	if err != nil {
 		fmt.Printf("%s: can't fetch context (%s)\n", au.Bold(au.Red("Error")), err.Error())
-		context = "minikube" // TODO: why an error?
 	}
 
 	globalContext = context
@@ -40,14 +39,13 @@ func main() {
 	flag.Parse()
 
 	ticker := time.NewTicker(time.Millisecond * 1000 * time.Duration(*interval))
-	err = runTests(*datadir, *outputdir)
-	if err != nil {
-		fmt.Printf("%s: %s\n", au.Bold(au.Red("Error")), err.Error())
-	}
 
 	go func() {
 		for range ticker.C {
-			runTests(*datadir, *outputdir)
+			err = runTests(*datadir, *outputdir)
+			if err != nil {
+				fmt.Printf("%s: %s\n", au.Bold(au.Red("Error")), err.Error())
+			}
 		}
 	}()
 

@@ -2,7 +2,8 @@ package main
 
 var staticTextTerminalStylesheet = `<style>
 .term-container {
-  background: #171717;
+  /* background: #171717; */
+  background: transparent;
   border-radius: 5px;
   color: white;
   word-break: break-word;
@@ -35,8 +36,10 @@ var staticTextTerminalStylesheet = `<style>
 .term-fg9 { text-decoration: line-through; } /* crossed-out */
 
 .term-fg30 { color: #666; } /* black (but we can't use black, so a diff color) */
-.term-fg31 { color: #e10c02; } /* red */
-.term-fg32 { color: #99ff5e; } /* green */
+.term-fg31 { color: #ff4136; }
+/* .term-fg31 { color: #e10c02; } */ /* red */
+.term-fg32 { color: #2ecc40; }
+/* .term-fg32 { color: #99ff5e; } */ /* green */
 .term-fg33 { color: #c6c502; } /* yellow */
 .term-fg34 { color: #8db7e0; } /* blue */
 .term-fg35 { color: #f271fb; } /* magenta */
@@ -307,35 +310,106 @@ var staticTextCdnIncludes = `
 <script src="https://cdn.jsdelivr.net/npm/vega-embed@3.29.1"></script>
 `
 
-var staticTextVegaLiteData = `[
-	{
-	  "tests": 18,
-	  "time": "2019-02-20 08:26:26",
-	  "result": "PASS"
+var staticTextVis01 = `
+<div id="vis01"></div>
+
+<script type="text/javascript">
+var historyResultSpec = {
+	"$schema": "https://vega.github.io/schema/vega-lite/v3.json",
+	"data": {
+	  "values": %s
 	},
-	{
-		"tests": 2,
-		"time": "2019-02-20 08:26:26",
-		"result": "FAIL"
+	"width": 400,
+	"height": 200,
+	"mark": "area",
+	"encoding": {
+		"x": {
+			"field": "time",
+			"type": "temporal"
+		},
+		"y": {
+			"field": "tests",
+			"type": "quantitative",
+			"scale": {
+				"domain": [
+					0,
+					%d
+				]
+			}
+		},
+		"color": {
+			"field": "result",
+			"type": "nominal",
+			"legend": {
+				"labelColor": "#fff",
+				"titleColor": "#fff"
+			},
+			"scale": {
+				"domain": [
+					"FAIL",
+					"PASS"
+				],
+				"range": [
+					"#FF4136",
+					"#2ECC40"
+				]
+			}
+		}
 	},
-	{
-	  "tests": 17,
-	  "time": "2019-02-20 09:26:26",
-	  "result": "PASS"
-	},
-	{
-		"tests": 3,
-		"time": "2019-02-20 09:26:26",
-		"result": "FAIL"
-	},
-	{
-		"tests": 18,
-		"time": "2019-02-20 10:26:26",
-		"result": "PASS"
-	},
-	{
-	  "tests": 2,
-	  "time": "2019-02-20 10:26:26",
-	  "result": "FAIL"
+	"config": {
+	  "axis": {
+		"labelFont": "sans-serif",
+		"titleFont": "sans-serif",
+		"labelColor": "white",
+		"titleColor": "white"
+	  },
+	  "axisX": {
+		"labelAngle": 0
+	  }
 	}
-  ]`
+  };
+  vegaEmbed('#vis01', historyResultSpec);
+</script>
+`
+
+var staticTextVis02 = `
+<div id="vis02"></div>
+
+<script type="text/javascript">
+var historyDurationSpec = {
+	"$schema": "https://vega.github.io/schema/vega-lite/v3.json",
+	"data": {
+		"values":
+			%s
+	},
+	"width": 400,
+	"height": 200,
+	"mark": {
+		"type": "area",
+		"color": "#FFDC00"
+	},
+	"encoding": {
+		"x": {
+			"field": "time",
+			"type": "temporal"
+		},
+		"y": {
+			"field": "duration",
+			"type": "temporal"
+		}
+	},
+	"config": {
+		"axis": {
+			"labelFont": "sans-serif",
+			"titleFont": "sans-serif",
+			"labelColor": "white",
+			"titleColor": "white"
+		},
+		"axisX": {
+			"labelAngle": 0
+		}
+	}
+};
+vegaEmbed('#vis02', historyDurationSpec);
+</script>
+`

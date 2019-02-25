@@ -48,7 +48,7 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
   <div class="col-sm-2"><a href="/api/v1/metrics/">/api/v1/metrics/</a></div>
   <div class="col-sm-10">metrics endpoint</div>
 </div>`)
-	fmt.Fprintf(w, page("cluster ID", "", buffer))
+	fmt.Fprintf(w, page("cluster ID", "", "", buffer, "bg-secondary"))
 	return
 }
 
@@ -64,7 +64,7 @@ func metricsHandler(w http.ResponseWriter, r *http.Request) {
 	_, err := processBytes([]byte(buffer), &output)
 	if err != nil {
 		sData := fmt.Sprintf("<p>Can't process input data: %s</p>", err)
-		fmt.Fprintf(w, page("cluster ID", "", sData))
+		fmt.Fprintf(w, page("cluster ID", "", "", sData, "bg-secondary"))
 		return
 	}
 
@@ -75,83 +75,29 @@ func metricsHandler(w http.ResponseWriter, r *http.Request) {
 
 func handleGet(w *http.ResponseWriter, r *http.Request) {
 
-	vegaLiteDataBytes, maxTests, logEntries, err := getHistoryData()
+	vegaLiteDataBytes, vegaLiteDurationBytes, maxTests, logEntries, logHead, failed, err := getHistoryData()
 	if err != nil {
-		// empty byte array returned
-		fmt.Sprintf("can't fetch JSON data (%s)", err.Error())
+		vegaLiteDataBytes = []byte("[]")
+		vegaLiteDurationBytes = []byte("[]")
 	}
 
-	terminal := strings.Join(logEntries, "\n")
+	terminal := logHead + strings.Join(logEntries, "\n")
 
 	terminalBytes := []byte(terminal)
 
 	adjust := int(maxTests / 2)
 
-	var chart = fmt.Sprintf(`
-    <div id="vis"></div>
-
-    <script type="text/javascript">
-	var yourVlSpec = {
-		"$schema": "https://vega.github.io/schema/vega-lite/v2.0.json",
-		"data": {
-		  "values": %s
-		},
-		"width": 400,
-		"height": 200,
-		"mark": "area",
-		"encoding": {
-		  "x": {
-			"field": "time",
-			"type": "temporal"
-		  },
-		  "y": {
-			"field": "tests",
-			"type": "quantitative",
-			"scale": {
-			  "domain": [
-				0,
-				%d
-			  ]
-			}
-		  },
-		  "color": {
-			"field": "result",
-			"type": "nominal",
-			"legend": {
-				"labelColor": "#fff",
-				"titleColor": "#fff"
-			},
-			"scale": {
-			  "domain": [
-				"PASS",
-				"FAIL"
-			  ],
-			  "range": [
-				"#2ECC40",
-				"#FF4136"
-			  ]
-			}
-		  }
-		},
-		"config": {
-		  "axis": {
-			"labelFont": "sans-serif",
-			"titleFont": "sans-serif",
-			"labelColor": "white",
-			"titleColor": "white"
-		  },
-		  "axisX": {
-			"labelAngle": 0
-		  }
-		}
-	  }
-	  vegaEmbed('#vis', yourVlSpec);
-	</script>`, vegaLiteDataBytes, maxTests+adjust) // alternatively, use staticTextVegaLiteData
+	var chart01 = fmt.Sprintf(staticTextVis01, vegaLiteDataBytes, maxTests+adjust)
+	var chart02 = fmt.Sprintf(staticTextVis02, vegaLiteDurationBytes)
 
 	log := fmt.Sprintf(`<div class="term-container">%s</div>`, string(term.Render(terminalBytes)))
 
+	bgColorClass := "bg-secondary"
+	if failed {
+		bgColorClass = "bg-danger"
+	}
 	// TODO: fetch actual context
-	fmt.Fprintf(*w, page(globalContext, chart, log))
+	fmt.Fprintf(*w, page(globalContext, chart01, chart02, log, bgColorClass))
 }
 
 func handlePost(w *http.ResponseWriter, r *http.Request) {

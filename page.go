@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-func page(title, chart string, log string) string {
+func page(title, chart01 string, chart02 string, log string, bgColor string) string {
 	return fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
@@ -17,10 +17,12 @@ func page(title, chart string, log string) string {
     %s
   </head>
   <body>
-    <div class="navbar navbar-static-top bg-secondary"><div class="container"><h1>%s</h1></div></div>
+    <div class="navbar navbar-static-top %s"><div class="container"><h1>%s</h1></div></div>
     <div class="container">
       <div class="row">
         <div class="col-sm">
+          %s
+          <br/>
           %s
         </div>
         <div class="col-sm">
@@ -28,5 +30,5 @@ func page(title, chart string, log string) string {
         </div>
       </div>
   </body>
-</html>`, title, staticTextTerminalStylesheet, staticTextCdnIncludes, title, chart, log)
+</html>`, title, staticTextTerminalStylesheet, staticTextCdnIncludes, bgColor, title, chart01, chart02, log)
 }
