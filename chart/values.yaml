@@ -1,5 +1,5 @@
 {
-  "name": "k8s-network-policy-viewer",
+  "name": "cluster-tests",
   "namespace": "default",
   "port": "8080",
   "host": "minikube.info",

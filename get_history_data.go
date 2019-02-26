@@ -7,15 +7,17 @@ import (
 	"path/filepath"
 )
 
-func getHistoryData() ([]byte, []byte, int, []string, string, bool, error) {
+func getHistoryData() ([]byte, []byte, []byte, int, []string, string, bool, error) {
 	failed := false
 	files, err := filepath.Glob(fmt.Sprintf("%s/*.json", globalOutputdir))
 	if err != nil {
-		return nil, nil, 0, nil, "", failed, fmt.Errorf("can't glob test files (%s)", err.Error())
+		return nil, nil, nil, 0, nil, "", failed, fmt.Errorf("can't glob output files (%s)", err.Error())
 	}
 
+	cumulative := map[string]int{}
 	var items []VegaLiteItem
 	var durationItems []VegaLiteDurationItem
+	var histogramItems []VegaLiteHistogramItem
 	var logEntries []string
 	var logHead string
 	maxTests := 0
@@ -23,21 +25,31 @@ func getHistoryData() ([]byte, []byte, int, []string, string, bool, error) {
 		var record Record
 		b, err := ioutil.ReadFile(file)
 		if err != nil {
-			return nil, nil, 0, nil, "", failed, fmt.Errorf("can't read %s (%s)", file, err.Error())
+			return nil, nil, nil, 0, nil, "", failed, fmt.Errorf("can't read %s (%s)", file, err.Error())
 		}
 
 		err = json.Unmarshal(b, &record)
 
 		if err != nil {
-			return nil, nil, 0, nil, "", failed, fmt.Errorf("invalid JSON (%s)", err.Error())
+			return nil, nil, nil, 0, nil, "", failed, fmt.Errorf("invalid JSON (%s)", err.Error())
 		}
 
 		// populate main result history
 		items = append(items, VegaLiteItem{record.Pass, record.Time, "PASS"})
 		items = append(items, VegaLiteItem{record.Fail, record.Time, "FAIL"})
 
-		// populate
+		// populate duration history
 		durationItems = append(durationItems, VegaLiteDurationItem{record.Duration, record.Time})
+
+		// update histogram map
+		for k, v := range record.Histogram {
+			// update histogram
+			if recordValue, ok := cumulative[k]; ok {
+				cumulative[k] = recordValue + v
+			} else {
+				cumulative[k] = v
+			}
+		}
 
 		sum := record.Fail + record.Pass
 		if sum > maxTests {
@@ -56,15 +68,25 @@ func getHistoryData() ([]byte, []byte, int, []string, string, bool, error) {
 		}
 	}
 
+	// transfer histogram map to vega-lite array
+	for k, v := range cumulative {
+		histogramItems = append(histogramItems, VegaLiteHistogramItem{k, v})
+	}
+
 	jsonResults, err := json.Marshal(items)
 	if err != nil {
-		return nil, nil, 0, nil, "", failed, fmt.Errorf("Can't marshal result items (%s)", err.Error())
+		return nil, nil, nil, 0, nil, "", failed, fmt.Errorf("Can't marshal result items (%s)", err.Error())
 	}
 
 	jsonDurations, err := json.Marshal(durationItems)
 	if err != nil {
-		return nil, nil, 0, nil, "", failed, fmt.Errorf("Can't marshal duration items (%s)", err.Error())
+		return nil, nil, nil, 0, nil, "", failed, fmt.Errorf("Can't marshal duration items (%s)", err.Error())
 	}
 
-	return jsonResults, jsonDurations, maxTests, logEntries, logHead, failed, nil
+	jsonHistogram, err := json.Marshal(histogramItems)
+	if err != nil {
+		return nil, nil, nil, 0, nil, "", failed, fmt.Errorf("Can't marshal histogram items (%s)", err.Error())
+	}
+
+	return jsonResults, jsonDurations, jsonHistogram, maxTests, logEntries, logHead, failed, nil
 }

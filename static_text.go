@@ -350,8 +350,8 @@ var historyResultSpec = {
 					"PASS"
 				],
 				"range": [
-					"#FF4136",
-					"#2ECC40"
+					"rgba(255, 65, 54, 0.8)",
+					"rgba(46, 204, 64, 0.8)"
 				]
 			}
 		}
@@ -386,7 +386,7 @@ var historyDurationSpec = {
 	"height": 200,
 	"mark": {
 		"type": "area",
-		"color": "#FFDC00"
+		"color": "rgba(255,220,0, 0.8)"
 	},
 	"encoding": {
 		"x": {
@@ -411,5 +411,47 @@ var historyDurationSpec = {
 	}
 };
 vegaEmbed('#vis02', historyDurationSpec);
+</script>
+`
+
+var staticTextVis03 = `
+<div id="vis03"></div>
+
+<script type="text/javascript">
+var historyHistogramSpec = {
+	"$schema": "https://vega.github.io/schema/vega-lite/v3.json",
+	"data": {
+		"values":
+			%s
+	},
+	"width": 400,
+	"height": 200,
+	"mark": {
+		"type": "bar",
+		"color": "rgba(255,220,0, 0.8)"
+	},
+	"encoding": {
+		"x": {
+			"field": "test",
+			"type": "nominal"
+		},
+		"y": {
+			"field": "count",
+			"type": "quantitative"
+		}
+	},
+	"config": {
+		"axis": {
+			"labelFont": "sans-serif",
+			"titleFont": "sans-serif",
+			"labelColor": "white",
+			"titleColor": "white"
+		},
+		"axisX": {
+			"labelAngle": 315
+		}
+	}
+};
+vegaEmbed('#vis03', historyHistogramSpec);
 </script>
 `

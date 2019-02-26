@@ -24,7 +24,8 @@ func main() {
 	port := flag.Int("p", 8080, "listen on port")
 	datadir := flag.String("d", "./cluster-tests.d", "data directory")
 	outputdir := flag.String("o", "./output", "output directory")
-	interval := flag.Int("i", 60, "interval (s)")
+	interval := flag.Int("i", 30, "interval (s)")
+	retain := flag.Int("r", 7, "retain (d)")
 
 	globalDatadir = *datadir
 	globalOutputdir = *outputdir
@@ -42,7 +43,7 @@ func main() {
 
 	go func() {
 		for range ticker.C {
-			err = runTests(*datadir, *outputdir)
+			err = runTests(*datadir, *outputdir, *retain)
 			if err != nil {
 				fmt.Printf("%s: %s\n", au.Bold(au.Red("Error")), err.Error())
 			}

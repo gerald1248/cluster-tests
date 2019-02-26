@@ -21,7 +21,7 @@ spec:
       serviceAccount: {{ .Values.name | quote }}
       containers:
       - name: {{ .Values.name | quote }}
-        image: gerald1248/k8s-network-policy-viewer:latest
+        image: gerald1248/cluster-tests:latest
         resources:
           limits:
             cpu: 200m

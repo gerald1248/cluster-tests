@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,7 +12,10 @@ import (
 	au "github.com/logrusorgru/aurora"
 )
 
-func runTests(datadir string, outputdir string) error {
+func runTests(datadir string, outputdir string, retain int) error {
+	// cleanup first
+	purgeOutput(outputdir, retain)
+
 	tests, err := filepath.Glob(fmt.Sprintf("%s/test*", datadir))
 	if err != nil {
 		return fmt.Errorf("can't glob test files (%s)", err.Error())
@@ -42,7 +44,6 @@ func runTests(datadir string, outputdir string) error {
 		t := time.Now()
 		basename := filepath.Base(match)
 
-		// TODO: fetch from env_* scripts
 		os.Setenv("USER_NAMESPACES", userNamespaces)
 		os.Setenv("NODES", nodes)
 		os.Setenv("HA_SERVICES", "")
@@ -64,7 +65,7 @@ func runTests(datadir string, outputdir string) error {
 			// append to failure log
 			record.FailLog = append(record.FailLog, fmt.Sprintf("%s %s %s", basename, au.Bold(au.Red("failed")), au.Bold(au.Cyan(message))))
 
-			// updatehistogram
+			// update histogram
 			if value, ok := record.Histogram[basename]; ok {
 				record.Histogram[basename] = value + 1
 			} else {
@@ -83,10 +84,8 @@ func runTests(datadir string, outputdir string) error {
 	record.Time = fmt.Sprintf("%s", recordTime.Format("2006-01-02 15:04:05"))
 	record.Fail = failureCount
 	record.Pass = successCount
-	//record.Duration = int(time.Since(startTime).Seconds() + 0.5)
 
-	rand.Seed(64)
-	record.Duration = int(time.Since(startTime).Seconds()+0.5) + rand.Intn(10)
+	record.Duration = int(time.Since(startTime).Nanoseconds() / 1000)
 
 	recordFilename := fmt.Sprintf("%s/%d.json", globalOutputdir, recordTime.Unix())
 

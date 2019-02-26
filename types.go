@@ -30,8 +30,8 @@ type VegaLiteDurationItem struct {
 
 // VegaLiteHistogramItem wraps a data point in the histogram Vega-Lite config
 type VegaLiteHistogramItem struct {
-	Count int    `json:"count"`
 	Test  string `json:"test"`
+	Count int    `json:"count"`
 }
 
 // MinimalObject is a placeholder struct for Kubernetes manifests

@@ -48,7 +48,7 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
   <div class="col-sm-2"><a href="/api/v1/metrics/">/api/v1/metrics/</a></div>
   <div class="col-sm-10">metrics endpoint</div>
 </div>`)
-	fmt.Fprintf(w, page("cluster ID", "", "", buffer, "bg-secondary"))
+	fmt.Fprintf(w, page("cluster ID", "", "", "", buffer, "bg-secondary"))
 	return
 }
 
@@ -64,7 +64,7 @@ func metricsHandler(w http.ResponseWriter, r *http.Request) {
 	_, err := processBytes([]byte(buffer), &output)
 	if err != nil {
 		sData := fmt.Sprintf("<p>Can't process input data: %s</p>", err)
-		fmt.Fprintf(w, page("cluster ID", "", "", sData, "bg-secondary"))
+		fmt.Fprintf(w, page("cluster ID", "", "", "", sData, "bg-secondary"))
 		return
 	}
 
@@ -75,7 +75,7 @@ func metricsHandler(w http.ResponseWriter, r *http.Request) {
 
 func handleGet(w *http.ResponseWriter, r *http.Request) {
 
-	vegaLiteDataBytes, vegaLiteDurationBytes, maxTests, logEntries, logHead, failed, err := getHistoryData()
+	vegaLiteDataBytes, vegaLiteDurationBytes, vegaLiteHistogramBytes, maxTests, logEntries, logHead, failed, err := getHistoryData()
 	if err != nil {
 		vegaLiteDataBytes = []byte("[]")
 		vegaLiteDurationBytes = []byte("[]")
@@ -85,10 +85,9 @@ func handleGet(w *http.ResponseWriter, r *http.Request) {
 
 	terminalBytes := []byte(terminal)
 
-	adjust := int(maxTests / 2)
-
-	var chart01 = fmt.Sprintf(staticTextVis01, vegaLiteDataBytes, maxTests+adjust)
+	var chart01 = fmt.Sprintf(staticTextVis01, vegaLiteDataBytes, maxTests)
 	var chart02 = fmt.Sprintf(staticTextVis02, vegaLiteDurationBytes)
+	var chart03 = fmt.Sprintf(staticTextVis03, vegaLiteHistogramBytes)
 
 	log := fmt.Sprintf(`<div class="term-container">%s</div>`, string(term.Render(terminalBytes)))
 
@@ -96,8 +95,7 @@ func handleGet(w *http.ResponseWriter, r *http.Request) {
 	if failed {
 		bgColorClass = "bg-danger"
 	}
-	// TODO: fetch actual context
-	fmt.Fprintf(*w, page(globalContext, chart01, chart02, log, bgColorClass))
+	fmt.Fprintf(*w, page(globalContext, chart01, chart02, chart03, log, bgColorClass))
 }
 
 func handlePost(w *http.ResponseWriter, r *http.Request) {
