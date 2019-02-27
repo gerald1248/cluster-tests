@@ -1,7 +1,6 @@
 for namespace in ${USER_NAMESPACES}; do
-  resourcequota=`kubectl get resourcequota -n ${namespace} 2>/dev/null | wc -l`
+  resourcequota=`kubectl get resourcequota -n ${namespace} | wc -l`
   if [ "${resourcequota}" -eq "0" ]; then
-    echo "resourcequota not set in namespace ${namespace}"
-    exit 1
+    fail "resourcequota not set in namespace ${namespace}"
   fi
 done

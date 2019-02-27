@@ -34,6 +34,12 @@ type VegaLiteHistogramItem struct {
 	Count int    `json:"count"`
 }
 
+// Metrics describes the return JSON object of a metrics query
+type Metrics struct {
+	Fail int `json:"fail"`
+	Pass int `json:"pass"`
+}
+
 // MinimalObject is a placeholder struct for Kubernetes manifests
 type MinimalObject struct {
 	Kind string

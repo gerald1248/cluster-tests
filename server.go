@@ -38,7 +38,7 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 	buffer := fmt.Sprintf(`
 <div class="row">
   <div class="col-sm-2"><a href="/">/</a></div>
-  <div class="col-sm-10">show graph</div>
+  <div class="col-sm-10">show dashboard</div>
 </div>
 <div class="row">
   <div class="col-sm-2"><a href="/health/">/health/</a></div>
@@ -48,7 +48,7 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
   <div class="col-sm-2"><a href="/api/v1/metrics/">/api/v1/metrics/</a></div>
   <div class="col-sm-10">metrics endpoint</div>
 </div>`)
-	fmt.Fprintf(w, page("cluster ID", "", "", "", buffer, "bg-secondary"))
+	fmt.Fprintf(w, pageMinimal(globalContext, buffer))
 	return
 }
 
@@ -57,28 +57,26 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func metricsHandler(w http.ResponseWriter, r *http.Request) {
-	var buffer, output string
-
-	output = "dot"
-
-	_, err := processBytes([]byte(buffer), &output)
+	passed, failed, _, err := getMetrics()
 	if err != nil {
-		sData := fmt.Sprintf("<p>Can't process input data: %s</p>", err)
-		fmt.Fprintf(w, page("cluster ID", "", "", "", sData, "bg-secondary"))
+		fmt.Fprintf(w, "{}")
 		return
 	}
 
-	percentageIsolated := 0
-	percentageNamespaceCoverage := 0
-	fmt.Fprintf(w, "{\"percentageIsolated\":%d,\"percentageNamespaceCoverage\":%d}", percentageIsolated, percentageNamespaceCoverage)
+	result := "OK"
+	if failed > 0 {
+		result = "FAILED"
+	}
+	fmt.Fprintf(w, "{\"pass\":%d,\"fail\":%d,\"result\":\"%s\"}", passed, failed, result)
 }
 
 func handleGet(w *http.ResponseWriter, r *http.Request) {
 
 	vegaLiteDataBytes, vegaLiteDurationBytes, vegaLiteHistogramBytes, maxTests, logEntries, logHead, failed, err := getHistoryData()
 	if err != nil {
-		vegaLiteDataBytes = []byte("[]")
-		vegaLiteDurationBytes = []byte("[]")
+		sData := fmt.Sprintf("<p>Can't display dashboard: %s</p>", err.Error())
+		fmt.Fprintf(*w, pageMinimal(globalContext, sData))
+		return
 	}
 
 	terminal := logHead + strings.Join(logEntries, "\n")
