@@ -11,6 +11,7 @@ import (
 	au "github.com/logrusorgru/aurora"
 )
 
+// delete output files in ${outputdir} older than ${retain} days
 func purgeOutput(outputdir string, retain int) error {
 	files, err := filepath.Glob(fmt.Sprintf("%s/*.json", outputdir))
 	if err != nil {

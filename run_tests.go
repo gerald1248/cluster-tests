@@ -13,8 +13,12 @@ import (
 )
 
 func runTests(datadir string, outputdir string, retain int) error {
+
 	// cleanup first
 	purgeOutput(outputdir, retain)
+
+	// update ignore list
+	ignoreSet := getIgnoreSet(datadir)
 
 	tests, err := filepath.Glob(fmt.Sprintf("%s/test*", datadir))
 	if err != nil {
@@ -41,6 +45,11 @@ func runTests(datadir string, outputdir string, retain int) error {
 	startTime := time.Now()
 
 	for _, match := range tests {
+		matchBasename := strings.TrimPrefix(match, fmt.Sprintf("%s/", datadir))
+		if _, ok := ignoreSet[matchBasename]; ok {
+			continue
+		}
+
 		t := time.Now()
 		basename := filepath.Base(match)
 
@@ -51,7 +60,7 @@ func runTests(datadir string, outputdir string, retain int) error {
 
 		fmt.Printf("[%s] %s... ", t.Format("2006-01-02 15:04:05"), au.Bold(au.Cyan(basename)))
 
-		stdout, _, err := execShellScript(match)
+		stdout, _, err := execTestShellScript(match)
 
 		if err != nil {
 			message := strings.TrimRight(stdout, " \n")

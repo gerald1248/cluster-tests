@@ -1,5 +1,42 @@
 package main
 
+var staticTextTestOperators = `
+GT=" -gt "
+LT=" -lt "
+EQ=" -eq "
+NE=" -ne "
+`
+var staticTextTestOperatorsInverted = `
+GT=" -lt "
+LT=" -gt "
+EQ=" -ne "
+NE=" -eq "
+`
+
+// fail() is the recommended assert mechanism (permits multiple failures per test)
+// the message is cumulative
+// the indicator aims for maximum shell compatibility (F, FF, FFF)
+var staticTextTestStart = `
+CLUSTER_TESTS_MESSAGE=""
+CLUSTER_TESTS_INDICATOR=""
+
+fail() {
+	PARAM=${1}
+	if [ "${#CLUSTER_TESTS_INDICATOR}" -gt "0" ]; then
+		CLUSTER_TESTS_MESSAGE="${CLUSTER_TESTS_MESSAGE}; "
+	fi
+	CLUSTER_TESTS_MESSAGE="${CLUSTER_TESTS_MESSAGE}${PARAM}"
+	CLUSTER_TESTS_INDICATOR="${CLUSTER_TESTS_INDICATOR}F"
+}
+`
+
+var staticTextTestEnd = `
+echo "${CLUSTER_TESTS_MESSAGE}"
+echo "INDICATOR LENGTH: ${#CLUSTER_TESTS_INDICATOR}"
+echo "INDICATOR: ${CLUSTER_TESTS_INDICATOR}"
+exit ${#CLUSTER_TESTS_INDICATOR}
+`
+
 var staticTextTerminalStylesheet = `<style>
 .term-container {
   /* background: #171717; */

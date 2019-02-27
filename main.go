@@ -25,7 +25,7 @@ func main() {
 	datadir := flag.String("d", "cluster-tests.d", "data directory")
 	outputdir := flag.String("o", "output", "output directory")
 	interval := flag.Int("i", 30, "interval (s)")
-	retain := flag.Int("r", 7, "retain (d)")
+	retain := flag.Int("r", 2, "retain (d)")
 
 	globalDatadir = *datadir
 	globalOutputdir = *outputdir
@@ -41,6 +41,15 @@ func main() {
 
 	ticker := time.NewTicker(time.Millisecond * 1000 * time.Duration(*interval))
 
+	// trigger initial run
+	go func() {
+		err = runTests(*datadir, *outputdir, *retain)
+		if err != nil {
+			fmt.Printf("%s: %s\n", au.Bold(au.Red("Error")), err.Error())
+		}
+	}()
+
+	// schedule subsequent runs
 	go func() {
 		for range ticker.C {
 			err = runTests(*datadir, *outputdir, *retain)
