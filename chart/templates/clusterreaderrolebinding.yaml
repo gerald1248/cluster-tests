@@ -4,7 +4,7 @@
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: {{ .Values.name | quote }}
+  name: cluster-reader-role-binding
   namespace: {{ .Values.namespace | quote }}
   labels:
     app: {{ .Values.name | quote }}

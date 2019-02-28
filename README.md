@@ -39,7 +39,7 @@ for namespace in ${USER_NAMESPACES}; do
 done
 ```
 
-A test that exits cleanly will pass, whereas any exit value other than 0 marks a failed test. `${USER_NAMESPACES}` is an example of a configurable environment variable provided to reduce the number of calls to the API server. Testers are free to use `kubectl`, `jq`, `sed` and company or fully formed kubectl queries with `-o jsonpath` selectors. There is no need to redirect `stderr` to `/dev/null` as it is dropped by default (though recoverable for debugging purposes).
+A test that exits cleanly will pass, whereas any exit value other than 0 marks a failed test. `${USER_NAMESPACES}` is an example of a configurable environment variable provided to reduce the number of calls to the API server. Testers are free to use `kubectl`, `jq`, `sed` and company or fully formed kubectl queries with `-o jsonpath` selectors. There is no need to redirect `stderr` to `/dev/null` as it is dropped by default (though recoverable for debugging purposes by passing in `-e`).
 
 What happens when a single test reports more than one problem? `exit 1` will not serve in this case. Instead, users can use the built-in function `fail`:
 

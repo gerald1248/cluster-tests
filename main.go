@@ -24,26 +24,36 @@ func main() {
 	port := flag.Int("p", 8080, "listen on port")
 	datadir := flag.String("d", "cluster-tests.d", "data directory")
 	outputdir := flag.String("o", "output", "output directory")
-	interval := flag.Int("i", 30, "interval (s)")
+	interval := flag.Int("i", 3600, "interval (s)")
 	retain := flag.Int("r", 2, "retain (d)")
+	errors := flag.Bool("e", false, "output stderr")
+	name := flag.String("n", "", "context name")
 
 	globalDatadir = *datadir
 	globalOutputdir = *outputdir
 
-	context, _, err := execShellScript(fmt.Sprintf("%s/get_context", *datadir))
-	if err != nil {
-		fmt.Printf("%s: can't fetch context (%s)\n", au.Bold(au.Red("Error")), err.Error())
+	flag.Parse()
+
+	// identify context/cluster name
+	var context string
+	// option #1: name param
+	if len(*name) > 0 {
+		context = *name
+	} else { // option #2: context is available
+		buffer, _, err := execShellScript(fmt.Sprintf("%s/get_context", *datadir))
+		if err != nil { // option #3: IP address is available
+			context = os.Getenv("KUBERNETES_PORT_443_TCP_ADDR")
+		} else {
+			context = buffer
+		}
 	}
 
 	globalContext = context
-
-	flag.Parse()
-
 	ticker := time.NewTicker(time.Millisecond * 1000 * time.Duration(*interval))
 
 	// trigger initial run
 	go func() {
-		err = runTests(*datadir, *outputdir, *retain)
+		err := runTests(*datadir, *outputdir, *retain, *errors)
 		if err != nil {
 			fmt.Printf("%s: %s\n", au.Bold(au.Red("Error")), err.Error())
 		}
@@ -52,7 +62,7 @@ func main() {
 	// schedule subsequent runs
 	go func() {
 		for range ticker.C {
-			err = runTests(*datadir, *outputdir, *retain)
+			err := runTests(*datadir, *outputdir, *retain, *errors)
 			if err != nil {
 				fmt.Printf("%s: %s\n", au.Bold(au.Red("Error")), err.Error())
 			}

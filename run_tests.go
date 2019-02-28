@@ -12,7 +12,7 @@ import (
 	au "github.com/logrusorgru/aurora"
 )
 
-func runTests(datadir string, outputdir string, retain int) error {
+func runTests(datadir string, outputdir string, retain int, errors bool) error {
 
 	// cleanup first
 	purgeOutput(outputdir, retain)
@@ -60,10 +60,15 @@ func runTests(datadir string, outputdir string, retain int) error {
 
 		fmt.Printf("[%s] %s... ", t.Format("2006-01-02 15:04:05"), au.Bold(au.Cyan(basename)))
 
-		stdout, _, err := execTestShellScript(match)
+		stdout, stderr, err := execTestShellScript(match)
 
 		if err != nil {
 			message := strings.TrimRight(stdout, " \n")
+
+			if errors {
+				message = fmt.Sprintf("%s %s", stderr, message)
+			}
+
 			if len(message) == 0 {
 				fmt.Printf("%s\n", au.Bold(au.Red("failed")))
 			} else {
