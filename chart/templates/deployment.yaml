@@ -42,5 +42,7 @@ spec:
           initialDelaySeconds: 20
           periodSeconds: 20
         env:
+        - name: CLUSTER_TESTS_CONTEXT
+          value: {{ .Values.host }}
         - name: POD_NAMESPACE
           value: {{ .Values.namespace | quote }}

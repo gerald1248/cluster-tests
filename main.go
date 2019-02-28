@@ -41,10 +41,13 @@ func main() {
 		context = *name
 	} else { // option #2: context is available
 		buffer, _, err := execShellScript(fmt.Sprintf("%s/get_context", *datadir))
-		if err != nil { // option #3: IP address is available
-			context = os.Getenv("KUBERNETES_PORT_443_TCP_ADDR")
-		} else {
+		if err == nil {
 			context = buffer
+		} else {
+			context = os.Getenv("CLUSTER_TESTS_CONTEXT") // option #3: custom context variable
+			if len(context) == 0 {
+				context = os.Getenv("KUBERNETES_PORT_443_TCP_ADDR") // option #4: IP address
+			}
 		}
 	}
 

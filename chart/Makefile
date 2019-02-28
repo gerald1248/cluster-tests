@@ -7,6 +7,7 @@ K := $(foreach exec,$(EXECUTABLES),\
 NAME = $(shell jq -r .name values.yaml)
 NAMESPACE = $(shell jq -r .namespace values.yaml)
 GROUP = $(shell jq -r .group values.yaml)
+HOST = $(shell jq -r .host values.yaml)
 
 install:
 	helm install --namespace=$(NAMESPACE) --name=$(NAME) .
