@@ -91,5 +91,5 @@ $ go build -o cluster-tests .
 
 `make build` will run these steps in a two-stage docker build process.
 
-The provided Helm chart simplifies the task of installing (and deleting) the application from your Kubernetes cluster.
+The provided Helm chart simplifies the task of installing and deleting the application from your Kubernetes cluster. The Makefile in the folder `charts` offers the targets `install` (which installs the chart) and `delete` (which deletes it).
 

@@ -7,12 +7,14 @@ import (
 	"path/filepath"
 )
 
-func getHistoryData() ([]byte, []byte, []byte, int, []string, string, bool, error) {
+func getHistoryData() ([]byte, []byte, []byte, int, []string, string, bool, Record, error) {
 	failed := false
 	files, err := filepath.Glob(fmt.Sprintf("%s/*.json", globalOutputdir))
 	if err != nil {
-		return nil, nil, nil, 0, nil, "", failed, fmt.Errorf("can't glob output files (%s)", err.Error())
+		return nil, nil, nil, 0, nil, "", failed, Record{}, fmt.Errorf("can't glob output files (%s)", err.Error())
 	}
+
+	lastRecord := Record{}
 
 	cumulative := map[string]int{}
 	var items []VegaLiteItem
@@ -25,13 +27,13 @@ func getHistoryData() ([]byte, []byte, []byte, int, []string, string, bool, erro
 		var record Record
 		b, err := ioutil.ReadFile(file)
 		if err != nil {
-			return nil, nil, nil, 0, nil, "", failed, fmt.Errorf("can't read %s (%s)", file, err.Error())
+			return nil, nil, nil, 0, nil, "", failed, Record{}, fmt.Errorf("can't read %s (%s)", file, err.Error())
 		}
 
 		err = json.Unmarshal(b, &record)
 
 		if err != nil {
-			return nil, nil, nil, 0, nil, "", failed, fmt.Errorf("invalid JSON (%s)", err.Error())
+			return nil, nil, nil, 0, nil, "", failed, Record{}, fmt.Errorf("invalid JSON (%s)", err.Error())
 		}
 
 		// populate main result history
@@ -57,6 +59,7 @@ func getHistoryData() ([]byte, []byte, []byte, int, []string, string, bool, erro
 		}
 
 		if i == len(files)-1 {
+			lastRecord = record
 			for _, log := range record.FailLog {
 				logEntries = append(logEntries, log)
 			}
@@ -75,18 +78,19 @@ func getHistoryData() ([]byte, []byte, []byte, int, []string, string, bool, erro
 
 	jsonResults, err := json.Marshal(items)
 	if err != nil {
-		return nil, nil, nil, 0, nil, "", failed, fmt.Errorf("Can't marshal result items (%s)", err.Error())
+		return nil, nil, nil, 0, nil, "", failed, Record{}, fmt.Errorf("Can't marshal result items (%s)", err.Error())
 	}
 
 	jsonDurations, err := json.Marshal(durationItems)
 	if err != nil {
-		return nil, nil, nil, 0, nil, "", failed, fmt.Errorf("Can't marshal duration items (%s)", err.Error())
+		return nil, nil, nil, 0, nil, "", failed, Record{}, fmt.Errorf("Can't marshal duration items (%s)", err.Error())
 	}
 
 	jsonHistogram, err := json.Marshal(histogramItems)
 	if err != nil {
-		return nil, nil, nil, 0, nil, "", failed, fmt.Errorf("Can't marshal histogram items (%s)", err.Error())
+		return nil, nil, nil, 0, nil, "", failed, Record{}, fmt.Errorf("Can't marshal histogram items (%s)", err.Error())
 	}
 
-	return jsonResults, jsonDurations, jsonHistogram, maxTests, logEntries, logHead, failed, nil
+	// TODO: failed is now redundant
+	return jsonResults, jsonDurations, jsonHistogram, maxTests, logEntries, logHead, failed, lastRecord, nil
 }

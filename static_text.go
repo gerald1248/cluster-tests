@@ -83,6 +83,8 @@ var staticTextTerminalStylesheet = `<style>
 .term-fg35 { color: #f271fb; } /* magenta */
 .term-fg36 { color: #00cdd9; } /* cyan */
 
+.term-fg37 { color: #aaaaaa; } /* added gray */
+
 /* high intense colors */
 .term-fgi1 { color: #5ef765; }
 .term-fgi90 { color: #838887; } /* grey */

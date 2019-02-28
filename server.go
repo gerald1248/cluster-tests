@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	term "github.com/buildkite/terminal"
+	au "github.com/logrusorgru/aurora"
 )
 
 // PostStruct wraps minimal POST requests
@@ -72,14 +73,20 @@ func metricsHandler(w http.ResponseWriter, r *http.Request) {
 
 func handleGet(w *http.ResponseWriter, r *http.Request) {
 
-	vegaLiteDataBytes, vegaLiteDurationBytes, vegaLiteHistogramBytes, maxTests, logEntries, logHead, failed, err := getHistoryData()
+	vegaLiteDataBytes, vegaLiteDurationBytes, vegaLiteHistogramBytes, maxTests, logEntries, logHead, failed, lastRecord, err := getHistoryData()
 	if err != nil {
 		sData := fmt.Sprintf("<p>Can't display dashboard: %s</p>", err.Error())
 		fmt.Fprintf(*w, pageMinimal(globalContext, sData))
 		return
 	}
 
-	terminal := logHead + strings.Join(logEntries, "\n")
+	timeSummary := fmt.Sprintf("Completed %s after %s", lastRecord.Time, formatDuration(int64(lastRecord.Duration)))
+
+	terminal := logHead
+	terminal += strings.Join(logEntries, "\n")
+	terminal += "\n\n"
+	terminal += fmt.Sprintf("%s", au.Bold(au.Gray(timeSummary)))
+	terminal += "\n"
 
 	terminalBytes := []byte(terminal)
 
@@ -94,6 +101,13 @@ func handleGet(w *http.ResponseWriter, r *http.Request) {
 		bgColorClass = "bg-danger"
 	}
 	fmt.Fprintf(*w, page(globalContext, chart01, chart02, chart03, log, bgColorClass))
+}
+
+func formatDuration(duration int64) string {
+	seconds := duration / 1000000
+	minutes := seconds / 60
+	secondsRemaining := seconds % 60
+	return fmt.Sprintf("%02dm:%02ds", minutes, secondsRemaining)
 }
 
 func handlePost(w *http.ResponseWriter, r *http.Request) {
