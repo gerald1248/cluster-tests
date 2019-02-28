@@ -13,6 +13,28 @@ The available endpoints are:
 | /health         | Health endpoint  |
 | /api/v1/metrics | Metrics endpoint |
 
+Usage
+-----
+`cluster-tests` is a single binary that serves as test runner and dashboard/metrics server.
+
+```
+Usage: cluster-tests  -d string
+        data directory (default "cluster-tests.d")
+  -e    output stderr
+  -i int
+        interval (s) (default 3600)
+  -n string
+        context name
+  -o string
+        output directory (default "output")
+  -p int
+        listen on port (default 8080)
+  -r int
+        retain (d) (default 2)
+  -s string
+        server (default "localhost")
+```
+
 Dashboard
 ---------
 
