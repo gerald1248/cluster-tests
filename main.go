@@ -20,7 +20,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	server := flag.String("s", "localhost", "server")
+	server := flag.String("s", "", "server")
 	port := flag.Int("p", 8080, "listen on port")
 	datadir := flag.String("d", "cluster-tests.d", "data directory")
 	outputdir := flag.String("o", "output", "output directory")

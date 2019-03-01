@@ -12,6 +12,7 @@ func page(title, chart01 string, chart02 string, chart03 string, log string, bgC
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="refresh" content="300">
     <title>%s</title>
     %s
     %s
