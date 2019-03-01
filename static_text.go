@@ -435,8 +435,12 @@ var historyDurationSpec = {
 		},
 		"y": {
 			"field": "duration",
-			"type": "temporal"
-		}
+			"type": "quantitative"
+		},
+		"tooltip": [
+				{ "field": "time", "type": "temporal" },
+				{ "field": "duration", "type": "quantitative" }
+		]
 	},
 	"config": {
 		"axis": {

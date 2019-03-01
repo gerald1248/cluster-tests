@@ -24,8 +24,8 @@ type VegaLiteItem struct {
 
 // VegaLiteDurationItem wraps a data point in the duration Vega-Lite config
 type VegaLiteDurationItem struct {
-	Duration int    `json:"duration"`
-	Time     string `json:"time"`
+	Duration float64 `json:"duration"`
+	Time     string  `json:"time"`
 }
 
 // VegaLiteHistogramItem wraps a data point in the histogram Vega-Lite config

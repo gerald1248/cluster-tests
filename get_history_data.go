@@ -41,7 +41,7 @@ func getHistoryData() ([]byte, []byte, []byte, int, []string, string, bool, Reco
 		items = append(items, VegaLiteItem{record.Fail, record.Time, "FAIL"})
 
 		// populate duration history
-		durationItems = append(durationItems, VegaLiteDurationItem{record.Duration, record.Time})
+		durationItems = append(durationItems, VegaLiteDurationItem{float64(record.Duration) / 1000000.0, record.Time})
 
 		// update histogram map
 		for k, v := range record.Histogram {
