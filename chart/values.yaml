@@ -3,5 +3,9 @@
   "namespace": "default",
   "port": "8080",
   "host": "minikube.info",
-  "group": "gerald1248"
+  "group": "gerald1248",
+  "interval_seconds": "600",
+  "retain_days": "1",
+  "datadir": "/app/cluster-tests.d",
+  "outputdir": "/app/output"
 }
