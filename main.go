@@ -24,7 +24,7 @@ func main() {
 	port := flag.Int("p", 8080, "listen on port")
 	datadir := flag.String("d", "cluster-tests.d", "data directory")
 	outputdir := flag.String("o", "output", "output directory")
-	interval := flag.Int("i", 3600, "interval (s)")
+	interval := flag.Int64("i", 3600, "interval (s)")
 	retain := flag.Int("r", 2, "retain (d)")
 	errors := flag.Bool("e", false, "output stderr")
 	name := flag.String("n", "", "context name")
@@ -52,7 +52,7 @@ func main() {
 	}
 
 	globalContext = context
-	ticker := time.NewTicker(time.Millisecond * 1000 * time.Duration(*interval))
+	ticker := time.NewTicker(time.Millisecond * time.Duration(1000) * time.Duration(*interval))
 
 	// trigger initial run
 	go func() {
