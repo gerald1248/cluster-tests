@@ -1,0 +1,139 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.name | quote }}
+  namespace: {{ .Values.namespace | quote }}
+data:
+  escalation_test: |-
+    for namespace in ${USER_NAMESPACES}; do
+      for pod in `kubectl get po -n ${namespace} --no-headers | cut -d' ' -f1`; do
+        count=`kubectl get po -n ${namespace} -o json | jq '.items[].spec.containers[] | select(.securityContext != "{}" and .securityContext != null and .securityContext.allowPrivilegeEscalation == true)' | wc -l`
+        if [ "${count}" -ne "0" ]; then
+          echo "pod ${pod} in namespace ${namespace} allows privilege escalation"
+          exit 1
+        fi
+      done
+    done
+  get_context: |
+    kubectl config current-context
+  get_nodes: kubectl get nodes -o jsonpath="{.items[*].metadata.name}"
+  get_user_namespaces: |
+    kubectl get ns | grep -v "\(kube-public\|kube-system\)" | cut -d ' ' -f1 | tail -n +2
+  ha_test: |
+    for svc in ${HA_SERVICES}; do
+      nodes=`kubectl get po --all-namespaces -o wide | grep ${svc} | \
+        awk '{ print $8 }'`
+      zones=""
+      for node in ${nodes}; do
+        zones="${zones} `kubectl get node/${node} -L "failure-domain.beta.kubernetes.io/zone" | \
+          awk '{print $6}' | \
+          tail -n +2`"
+      done
+      zone_count=`echo ${zones} | tr ' ' '\n' | sort -u | wc -l`
+      ha=false
+      if [ "${zone_count}" -lt "2" ]; then
+        echo "${svc} must be distributed across two or more zones"
+        exit 1
+      fi
+    done
+  healthcheck_test: |
+    for namespace in ${USER_NAMESPACES}; do
+      for pod in `kubectl get po --field-selector=status.phase=Running --no-headers -n ${namespace} | cut -d' ' -f1`; do
+        result=`kubectl get po/${pod} -n ${namespace} -o json | jq '.spec.containers[] | select(.readinessProbe and .livenessProbe)'`
+        if [ "${#result}" -eq 0 ]; then
+          echo "pod ${pod} in namespace ${namespace} requires both liveness and readiness probes"
+          exit 1
+        fi
+      done
+    done
+  ignore: |
+    test_identity
+  test_cluster_admin_bindings: |
+    sa_with_cluster_admin=`kubectl get clusterrolebindings -o wide | grep "cluster-admin" | awk '{ print $5 }' | grep "[[:alnum:]]" | sed 's/^/"/' | sed 's/$/"/'`
+    trimmed=`echo "${sa_with_cluster_admin}" | tr -d '[[:space:]]'`
+    if [ ! -z "${trimmed}" ]; then
+      count=`echo ${sa_with_cluster_admin} | wc -l`
+      if [ ${count} -ne "0" ]; then
+        echo "there must be no service accounts with cluster admin rights, found ${count}: [ ${sa_with_cluster_admin} ]"
+      fi
+    fi
+  test_identity: |-
+    if [ "0" -ne "0" ]; then
+      echo "expected identity"
+      exit 1
+    fi
+  test_nodes_no_warnings: |
+    for node in ${NODES}; do
+      warnings=`kubectl describe node/${node} | grep -A64 "^Events:" | grep -c "Warn"`
+      if [ "${warnings}" -ne "0" ]; then
+        echo "node ${node} has warnings"
+        exit 1
+      fi
+    done
+  test_nodes_ready: |-
+    for node in ${NODES}; do
+      ready=`kubectl get node ${node} -o json | jq -r '.status.conditions[] | select(.type=="Ready") | .status' `
+      if [ "${ready}" -ne "True" ]; then
+        echo "node ${node} not ready"
+      fi
+    done
+  test_privileged: |
+    for namespace in ${USER_NAMESPACES}; do
+      for pod in `kubectl get pods --field-selector=status.phase=Running -n ${namespace} | cut -d' ' -f1 | tail -n +2`; do
+        count_privileged=`kubectl get po/${pod} -n ${namespace} -o json | jq -r '..|.securityContext?.privileged' | grep -c true`
+        if [ "${count_privileged}" -ne "0" ]; then
+          echo "pod ${pod} in namespace ${namespace} runs with privileged security context"
+          exit 1
+        fi
+      done
+    done
+  test_quotas: |
+    for namespace in ${USER_NAMESPACES}; do
+      resourcequota=`kubectl get resourcequota -n ${namespace} | wc -l`
+      if [ "${resourcequota}" -eq "0" ]; then
+        fail "resourcequota not set in namespace ${namespace}"
+      fi
+    done
+  test_resources: |
+    for namespace in ${USER_NAMESPACES}; do
+      for deployment in `kubectl get deployments -n ${namespace} -o json | jq -r '.items[].metadata.name'`; do
+        resources_count=`kubectl get deployment/${deployment} -n ${namespace} -o json | jq -r '.spec.template.spec.containers[].resources | select(.limits.cpu and .limits.memory and .requests.cpu and .requests.memory)' | grep -c "[[:alnum:]]"`
+        if [ "${resources_count}" -eq "0" ]; then
+          echo "missing resource limits/requests in deployment ${deployment} in namespace ${namespace}"
+        fi
+      done
+    done
+  test_root: |
+    for namespace in ${USER_NAMESPACES}; do
+      for pod in `kubectl get po -n ${namespace} --no-headers | cut -d' ' -f1`; do
+        uid=`kubectl exec -n ${namespace} ${pod} -- id -u`
+        if [ "${uid}" -eq "0" ]; then
+          echo "pod ${pod} in namespace ${namespace} runs as root"
+          exit 1
+        fi
+      done
+    done
+  test_storage_encrypted: |-
+    STORAGECLASSES=$(kubectl get pv -o json | jq -r '.items[].spec.storageClassName')
+    for STORAGECLASS in ${STORAGECLASSES}; do
+      ENCRYPTED=$(kubectl get sc/${STORAGECLASS} -o json | jq -r '.parameters.encrypted')
+      if [ "${ENCRYPTED}" == "true" ]; then
+        echo "storageclass ${STORAGECLASS} is unencrypted"
+        exit 1
+      fi
+    done
+  test_version: |
+    begins_with() {
+      case $2 in "$1"*) true;; *) false;; esac
+    }
+
+    SERVER_MAJOR=`kubectl version -o json | jq -r .serverVersion.major`
+    SERVER_MINOR=`kubectl version -o json | jq -r .serverVersion.minor`
+    KUBELET_VERSION=`kubectl get nodes -o jsonpath="{.items[*].status.nodeInfo.kubeletVersion}"`
+
+    MATCH_STRING="v{$SERVER_MAJOR}.${SERVER_MINOR}"
+
+    if not begins_with "KUBELET_VERSION" "${MATCH_STRING}"; then
+      echo "server and kubelet versions must match; server version: ${KUBELET_VERSION} doesn't start with ${MATCH_STRING}"
+      exit 1
+    fi

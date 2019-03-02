@@ -46,3 +46,15 @@ spec:
           value: {{ .Values.host }}
         - name: POD_NAMESPACE
           value: {{ .Values.namespace | quote }}
+        volumeMounts:
+        - name: "{{ .Values.name }}-config-vol"
+          mountPath: /app/{{ .Values.name }}.d
+        - name: "{{ .Values.name }}-output-vol"
+          mountPath: /app/output
+      volumes:
+      - name: "{{ .Values.name }}-config-vol"
+        configMap:
+          name: {{ .Values.name | quote }}
+      - name: "{{ .Values.name }}-output-vol"
+        persistentVolumeClaim:
+          claimName: {{ .Values.name | quote }}

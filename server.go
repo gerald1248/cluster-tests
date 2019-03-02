@@ -80,7 +80,7 @@ func handleGet(w *http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	timeSummary := fmt.Sprintf("Completed %s after %s", lastRecord.Time, formatDuration(int64(lastRecord.Duration)))
+	timeSummary := fmt.Sprintf("%s (%s)", lastRecord.Time, formatDuration(int64(lastRecord.Duration)))
 
 	terminal := logHead
 	terminal += strings.Join(logEntries, "\n")
