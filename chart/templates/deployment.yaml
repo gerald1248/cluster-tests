@@ -9,6 +9,8 @@ spec:
   triggers:
   - type: ConfigChange
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: {{ .Values.name | quote }}
