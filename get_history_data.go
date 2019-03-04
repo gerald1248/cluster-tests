@@ -7,11 +7,10 @@ import (
 	"path/filepath"
 )
 
-func getHistoryData() ([]byte, []byte, []byte, int, []string, string, bool, Record, error) {
-	failed := false
+func getHistoryData() (ParsedHistory, error) {
 	files, err := filepath.Glob(fmt.Sprintf("%s/*.json", globalOutputdir))
 	if err != nil {
-		return nil, nil, nil, 0, nil, "", failed, Record{}, fmt.Errorf("can't glob output files (%s)", err.Error())
+		return ParsedHistory{}, fmt.Errorf("can't glob output files (%s)", err.Error())
 	}
 
 	lastRecord := Record{}
@@ -27,13 +26,13 @@ func getHistoryData() ([]byte, []byte, []byte, int, []string, string, bool, Reco
 		var record Record
 		b, err := ioutil.ReadFile(file)
 		if err != nil {
-			return nil, nil, nil, 0, nil, "", failed, Record{}, fmt.Errorf("can't read %s (%s)", file, err.Error())
+			return ParsedHistory{}, fmt.Errorf("can't read %s (%s)", file, err.Error())
 		}
 
 		err = json.Unmarshal(b, &record)
 
 		if err != nil {
-			return nil, nil, nil, 0, nil, "", failed, Record{}, fmt.Errorf("invalid JSON (%s)", err.Error())
+			return ParsedHistory{}, fmt.Errorf("invalid JSON (%s)", err.Error())
 		}
 
 		// populate main result history
@@ -67,7 +66,6 @@ func getHistoryData() ([]byte, []byte, []byte, int, []string, string, bool, Reco
 				logEntries = append(logEntries, log)
 			}
 			logHead = record.Head
-			failed = len(record.FailLog) > 0
 		}
 	}
 
@@ -78,19 +76,27 @@ func getHistoryData() ([]byte, []byte, []byte, int, []string, string, bool, Reco
 
 	jsonResults, err := json.Marshal(items)
 	if err != nil {
-		return nil, nil, nil, 0, nil, "", failed, Record{}, fmt.Errorf("Can't marshal result items (%s)", err.Error())
+		return ParsedHistory{}, fmt.Errorf("Can't marshal result items (%s)", err.Error())
 	}
 
 	jsonDurations, err := json.Marshal(durationItems)
 	if err != nil {
-		return nil, nil, nil, 0, nil, "", failed, Record{}, fmt.Errorf("Can't marshal duration items (%s)", err.Error())
+		return ParsedHistory{}, fmt.Errorf("Can't marshal duration items (%s)", err.Error())
 	}
 
 	jsonHistogram, err := json.Marshal(histogramItems)
 	if err != nil {
-		return nil, nil, nil, 0, nil, "", failed, Record{}, fmt.Errorf("Can't marshal histogram items (%s)", err.Error())
+		return ParsedHistory{}, fmt.Errorf("Can't marshal histogram items (%s)", err.Error())
 	}
 
-	// TODO: failed is now redundant
-	return jsonResults, jsonDurations, jsonHistogram, maxTests, logEntries, logHead, failed, lastRecord, nil
+	history := ParsedHistory{
+		jsonResults,
+		jsonDurations,
+		jsonHistogram,
+		maxTests,
+		logEntries,
+		logHead,
+		lastRecord,
+	}
+	return history, nil
 }

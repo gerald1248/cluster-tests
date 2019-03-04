@@ -5,10 +5,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strings"
-
-	term "github.com/buildkite/terminal"
-	au "github.com/logrusorgru/aurora"
 )
 
 // PostStruct wraps minimal POST requests
@@ -72,35 +68,17 @@ func metricsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleGet(w *http.ResponseWriter, r *http.Request) {
+	indexfile := fmt.Sprintf("%s/index.html", globalOutputdir)
+	buffer, err := ioutil.ReadFile(indexfile)
 
-	vegaLiteDataBytes, vegaLiteDurationBytes, vegaLiteHistogramBytes, maxTests, logEntries, logHead, failed, lastRecord, err := getHistoryData()
 	if err != nil {
+		fmt.Printf("Can't read index file %s\n", indexfile)
 		sData := fmt.Sprintf("<p>Can't display dashboard: %s</p>", err.Error())
 		fmt.Fprintf(*w, pageMinimal(globalContext, sData))
 		return
 	}
 
-	timeSummary := fmt.Sprintf("%s (%s)", lastRecord.Time, formatDuration(int64(lastRecord.Duration)))
-
-	terminal := logHead
-	terminal += strings.Join(logEntries, "\n")
-	terminal += "\n\n"
-	terminal += fmt.Sprintf("%s", au.Bold(au.Gray(timeSummary)))
-	terminal += "\n"
-
-	terminalBytes := []byte(terminal)
-
-	var chart01 = fmt.Sprintf(staticTextVis01, vegaLiteDataBytes, maxTests)
-	var chart02 = fmt.Sprintf(staticTextVis02, vegaLiteDurationBytes)
-	var chart03 = fmt.Sprintf(staticTextVis03, vegaLiteHistogramBytes)
-
-	log := fmt.Sprintf(`<div class="term-container">%s</div>`, string(term.Render(terminalBytes)))
-
-	bgColorClass := "bg-secondary"
-	if failed {
-		bgColorClass = "bg-danger"
-	}
-	fmt.Fprintf(*w, page(globalContext, chart01, chart02, chart03, log, bgColorClass))
+	fmt.Fprintf(*w, string(buffer))
 }
 
 func formatDuration(duration int64) string {

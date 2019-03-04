@@ -9,27 +9,84 @@ import (
 	"strings"
 	"time"
 
+	term "github.com/buildkite/terminal"
 	au "github.com/logrusorgru/aurora"
 )
 
-func runTests(datadir string, outputdir string, retain int, errors bool) error {
+// callRunTests is extracted from main() as it is called twice
+// don't panic on error
+func callRunTests(param RunTestsParam) {
+	// run tests first
+	err := runTests(param)
+	if err != nil {
+		fmt.Printf("%s: %s\n", au.Bold(au.Red("Error")), err.Error())
+		return
+	}
+
+	// then write out dashboard as static page
+	var pageBuffer string
+
+	history, err := getHistoryData()
+	if err != nil {
+		sData := fmt.Sprintf("<p>Can't display dashboard: %s</p>", err.Error())
+		pageBuffer = fmt.Sprintf(pageMinimal(globalContext, sData))
+		return
+	}
+
+	timeSummary := fmt.Sprintf("%s (%s)", history.lastRecord.Time, formatDuration(int64(history.lastRecord.Duration)))
+
+	terminal := history.logHead
+	terminal += strings.Join(history.logEntries, "\n")
+	terminal += "\n\n"
+	terminal += fmt.Sprintf("%s", au.Bold(au.Gray(timeSummary)))
+	terminal += "\n"
+
+	terminalBytes := []byte(terminal)
+
+	var chart01, chart02, chart03 string
+	chart01 = fmt.Sprintf(staticTextVis01, history.jsonResults, history.maxTests)
+
+	if param.duration {
+		chart02 = fmt.Sprintf(staticTextVis02, history.jsonDurations)
+	}
+
+	if param.histogram {
+		chart03 = fmt.Sprintf(staticTextVis03, history.jsonHistogram)
+	}
+
+	log := fmt.Sprintf(`<div class="term-container">%s</div>`, string(term.Render(terminalBytes)))
+
+	bgColorClass := "bg-secondary"
+	if history.lastRecord.Fail > 0 {
+		bgColorClass = "bg-danger"
+	}
+	pageBuffer = fmt.Sprintf(page(globalContext, chart01, chart02, chart03, log, bgColorClass))
+
+	filename := fmt.Sprintf("%s/index.html", globalOutputdir)
+	err = ioutil.WriteFile(filename, []byte(pageBuffer), 0644)
+	if err != nil {
+		fmt.Printf("can't write index file %s (%s)", filename, err.Error())
+	}
+}
+
+func runTests(param RunTestsParam) error {
 
 	// cleanup first
-	purgeOutput(outputdir, retain)
+	purgeOutput(param.outputdir, param.retain)
 
 	// update ignore list
-	ignoreSet := getIgnoreSet(datadir)
+	ignoreSet := getIgnoreSet(param.datadir)
 
-	tests, err := filepath.Glob(fmt.Sprintf("%s/test*", datadir))
+	tests, err := filepath.Glob(fmt.Sprintf("%s/test*", param.datadir))
 	if err != nil {
 		return fmt.Errorf("can't glob test files (%s)", err.Error())
 	}
 
-	userNamespaces, _, err := execShellScript(fmt.Sprintf("%s/get_user_namespaces", datadir))
+	userNamespaces, _, err := execShellScript(fmt.Sprintf("%s/get_user_namespaces", param.datadir))
 	if err != nil {
 		return fmt.Errorf("can't determine user namespaces (%s)", err.Error())
 	}
-	nodes, _, err := execShellScript(fmt.Sprintf("%s/get_nodes", datadir))
+	nodes, _, err := execShellScript(fmt.Sprintf("%s/get_nodes", param.datadir))
 	if err != nil {
 		return fmt.Errorf("can't fetch cluster nodes (%s)", err.Error())
 	}
@@ -45,7 +102,7 @@ func runTests(datadir string, outputdir string, retain int, errors bool) error {
 	startTime := time.Now()
 
 	for _, match := range tests {
-		matchBasename := strings.TrimPrefix(match, fmt.Sprintf("%s/", datadir))
+		matchBasename := strings.TrimPrefix(match, fmt.Sprintf("%s/", param.datadir))
 		if _, ok := ignoreSet[matchBasename]; ok {
 			continue
 		}
@@ -65,7 +122,7 @@ func runTests(datadir string, outputdir string, retain int, errors bool) error {
 		if err != nil {
 			message := strings.TrimRight(stdout, " \n")
 
-			if errors {
+			if param.errors {
 				message = fmt.Sprintf("%s %s", stderr, message)
 			}
 

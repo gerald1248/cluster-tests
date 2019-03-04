@@ -40,6 +40,27 @@ type Metrics struct {
 	Pass int `json:"pass"`
 }
 
+// RunTestsParam gathers up the parameters passed to the test runner goroutine
+type RunTestsParam struct {
+	datadir   string
+	outputdir string
+	retain    int
+	errors    bool
+	duration  bool
+	histogram bool
+}
+
+// ParsedHistory prevents a lengthy list of return values from getHistoryData()
+type ParsedHistory struct {
+	jsonResults   []byte
+	jsonDurations []byte
+	jsonHistogram []byte
+	maxTests      int
+	logEntries    []string
+	logHead       string
+	lastRecord    Record
+}
+
 // MinimalObject is a placeholder struct for Kubernetes manifests
 type MinimalObject struct {
 	Kind string

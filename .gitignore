@@ -3,3 +3,4 @@
 **/ignore/
 go.sum
 **/output/*.json
+**/output/index.html

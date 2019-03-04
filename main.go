@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-
-	au "github.com/logrusorgru/aurora"
 )
 
 var globalDatadir, globalOutputdir, globalContext string
@@ -28,6 +26,8 @@ func main() {
 	retain := flag.Int("r", 2, "retain (d)")
 	errors := flag.Bool("e", false, "output stderr")
 	name := flag.String("n", "", "context name")
+	duration := flag.Bool("-duration", true, "display duration chart")
+	histogram := flag.Bool("-histogram", false, "display histogram")
 
 	globalDatadir = *datadir
 	globalOutputdir = *outputdir
@@ -54,21 +54,17 @@ func main() {
 	globalContext = context
 	ticker := time.NewTicker(time.Millisecond * time.Duration(1000) * time.Duration(*interval))
 
+	runTestsParam := RunTestsParam{*datadir, *outputdir, *retain, *errors, *duration, *histogram}
+
 	// trigger initial run
 	go func() {
-		err := runTests(*datadir, *outputdir, *retain, *errors)
-		if err != nil {
-			fmt.Printf("%s: %s\n", au.Bold(au.Red("Error")), err.Error())
-		}
+		callRunTests(runTestsParam)
 	}()
 
 	// schedule subsequent runs
 	go func() {
 		for range ticker.C {
-			err := runTests(*datadir, *outputdir, *retain, *errors)
-			if err != nil {
-				fmt.Printf("%s: %s\n", au.Bold(au.Red("Error")), err.Error())
-			}
+			callRunTests(runTestsParam)
 		}
 	}()
 
