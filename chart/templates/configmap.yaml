@@ -61,7 +61,7 @@ data:
     if [ "0" -ne "0" ]; then
       fail "expected identity"
     fi
-  test_nodes_no_warnings: |
+  test_nodes_warnings: |
     for node in ${NODES}; do
       warnings=`kubectl describe node/${node} | grep -A64 "^Events:" | grep -c "Warn"`
       if [ "${warnings}" -ne "0" ]; then
@@ -70,9 +70,37 @@ data:
     done
   test_nodes_ready: |-
     for node in ${NODES}; do
-      ready=`kubectl get node ${node} -o json | jq -r '.status.conditions[] | select(.type=="Ready") | .status' `
-      if [ "${ready}" -ne "True" ]; then
+      result=`kubectl get node ${node} -o jsonpath="{.status.conditions[?(@.type=='Ready')].status}"`
+      if [ "${result}" != "True" ]; then
         fail "node ${node} not ready"
+      fi
+    done
+  test_nodes_out_of_disk: |-
+    for node in ${NODES}; do
+      result=`kubectl get node ${node} -o jsonpath="{.status.conditions[?(@.type=='OutOfDisk')].status}"`
+      if [ "${result}" != "False" ]; then
+        fail "node ${node} is short of disk space"
+      fi
+    done
+  test_nodes_memory_pressure: |-
+    for node in ${NODES}; do
+      result=`kubectl get node ${node} -o jsonpath="{.status.conditions[?(@.type=='MemoryPressure')].status}"`
+      if [ "${result}" != "False" ]; then
+        fail "node ${node} is under memory pressure"
+      fi
+    done
+  test_nodes_disk_pressure: |-
+    for node in ${NODES}; do
+      result=`kubectl get node ${node} -o jsonpath="{.status.conditions[?(@.type=='DiskPressure')].status}"`
+      if [ "${result}" != "False" ]; then
+        fail "node ${node} is under disk pressure"
+      fi
+    done
+  test_nodes_pid_pressure: |-
+    for node in ${NODES}; do
+      result=`kubectl get node ${node} -o jsonpath="{.status.conditions[?(@.type=='PIDPressure')].status}"`
+      if [ "${result}" != "False" ]; then
+        fail "node ${node} is under PID pressure"
       fi
     done
   test_privileged: |
