@@ -6,7 +6,7 @@ metadata:
 data:
   escalation_test: |-
     for namespace in ${USER_NAMESPACES}; do
-      for pod in `kubectl get po -n ${namespace} --no-headers | cut -d' ' -f1`; do
+      for pod in `kubectl get po -o jsonpath="{.items[*].metadata.name}"`; do
         count=`kubectl get po -n ${namespace} -o json | jq '.items[].spec.containers[] | select(.securityContext != "{}" and .securityContext != null and .securityContext.allowPrivilegeEscalation == true)' | wc -l`
         if [ "${count}" -ne "0" ]; then
           echo "pod ${pod} in namespace ${namespace} allows privilege escalation"
@@ -105,7 +105,7 @@ data:
     done
   test_root: |
     for namespace in ${USER_NAMESPACES}; do
-      for pod in `kubectl get po -n ${namespace} --no-headers | cut -d' ' -f1`; do
+      for pod in `kubectl get po -o jsonpath="{.items[*].metadata.name}"`; do
         uid=`kubectl exec -n ${namespace} ${pod} -- id -u`
         if [ "${uid}" -eq "0" ]; then
           echo "pod ${pod} in namespace ${namespace} runs as root"
@@ -137,3 +137,22 @@ data:
       echo "server and kubelet versions must match; server version: ${KUBELET_VERSION} doesn't start with ${MATCH_STRING}"
       exit 1
     fi
+  test_pod_ready: |
+    for namespace in ${USER_NAMESPACES}; do
+      for pod in `kubectl get po -o jsonpath="{.items[*].metadata.name}"`; do
+        ready=`kubectl get pod/${pod} -o jsonpath="{.status.containerStatuses[0].ready}"`
+        if [ "${ready}" != "true" ]; then
+          fail "pod ${pod} in namespace ${namespace} is not ready"
+        fi
+      done
+    done
+  test_pod_restarts: |
+    CUTOFF=16
+    for namespace in ${USER_NAMESPACES}; do
+      for pod in `kubectl get po -o jsonpath="{.items[*].metadata.name}"`; do
+        restartCount=`kubectl get pod/${pod} -o jsonpath="{.status.containerStatuses[0].restartCount}"`
+        if [ "${restartCount}" -gt "${CUTOFF}" ]; then
+          fail "pod ${pod} in namespace ${namespace} has restarted ${restartCount} times"
+        fi
+      done
+    done
