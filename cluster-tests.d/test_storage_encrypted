@@ -2,7 +2,6 @@ STORAGECLASSES=$(kubectl get pv -o json | jq -r '.items[].spec.storageClassName'
 for STORAGECLASS in ${STORAGECLASSES}; do
   ENCRYPTED=$(kubectl get sc/${STORAGECLASS} -o json | jq -r '.parameters.encrypted')
   if [ "${ENCRYPTED}" == "true" ]; then
-    echo "storageclass ${STORAGECLASS} is unencrypted"
-    exit 1
+    fail "storageclass ${STORAGECLASS} is unencrypted"
   fi
 done

@@ -4,11 +4,10 @@ begins_with() {
 
 SERVER_MAJOR=`kubectl version -o json | jq -r .serverVersion.major`
 SERVER_MINOR=`kubectl version -o json | jq -r .serverVersion.minor`
-KUBELET_VERSION=`kubectl get nodes -o jsonpath="{.items[*].status.nodeInfo.kubeletVersion}"`
+KUBELET_VERSION=`kubectl get nodes -o jsonpath="{.items[0].status.nodeInfo.kubeletVersion}" | sort -u`
 
 MATCH_STRING="v{$SERVER_MAJOR}.${SERVER_MINOR}"
 
-if not begins_with "KUBELET_VERSION" "${MATCH_STRING}"; then
-  echo "server and kubelet versions must match; server version: ${KUBELET_VERSION} doesn't start with ${MATCH_STRING}"
-  exit 1
+if not begins_with "${KUBELET_VERSION}" "${MATCH_STRING}"; then
+  fail "server and kubelet versions must match; server version: ${KUBELET_VERSION} doesn't start with ${MATCH_STRING}"
 fi

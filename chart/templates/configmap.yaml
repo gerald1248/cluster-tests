@@ -6,7 +6,7 @@ metadata:
 data:
   escalation_test: |-
     for namespace in ${USER_NAMESPACES}; do
-      for pod in `kubectl get po -o jsonpath="{.items[*].metadata.name}"`; do
+      for pod in `kubectl get pods -o jsonpath="{.items[*].metadata.name}"`; do
         count=`kubectl get po -n ${namespace} -o json | jq '.items[].spec.containers[] | select(.securityContext != "{}" and .securityContext != null and .securityContext.allowPrivilegeEscalation == true)' | wc -l`
         if [ "${count}" -ne "0" ]; then
           echo "pod ${pod} in namespace ${namespace} allows privilege escalation"
@@ -18,7 +18,7 @@ data:
     kubectl config current-context
   get_nodes: kubectl get nodes -o jsonpath="{.items[*].metadata.name}"
   get_user_namespaces: |
-    kubectl get ns | grep -v "\(kube-public\|kube-system\)" | cut -d ' ' -f1 | tail -n +2
+    kubectl get ns -o jsonpath="{.items[*].metadata.name}" | tr " " "\n" | grep -v "\(kube-public\|kube-system\)"
   ha_test: |
     for svc in ${HA_SERVICES}; do
       nodes=`kubectl get po --all-namespaces -o wide | grep ${svc} | \
@@ -38,9 +38,9 @@ data:
     done
   healthcheck_test: |
     for namespace in ${USER_NAMESPACES}; do
-      for pod in `kubectl get po --field-selector=status.phase=Running --no-headers -n ${namespace} | cut -d' ' -f1`; do
-        result=`kubectl get po/${pod} -n ${namespace} -o json | jq '.spec.containers[] | select(.readinessProbe and .livenessProbe)'`
-        if [ "${#result}" -eq 0 ]; then
+      for pod in `kubectl get pods --field-selector=status.phase=Running -n ${namespace} -o jsonpath="{.items[*].metadata.name}"`; do
+        result=`kubectl get pod/${pod} -n ${namespace} -o json | jq '.spec.containers[] | select(.readinessProbe and .livenessProbe)'`
+        if [ "${#result}" -eq "0" ]; then
           echo "pod ${pod} in namespace ${namespace} requires both liveness and readiness probes"
           exit 1
         fi
@@ -53,28 +53,26 @@ data:
     trimmed=`echo "${sa_with_cluster_admin}" | tr -d '[[:space:]]'`
     if [ ! -z "${trimmed}" ]; then
       count=`echo ${sa_with_cluster_admin} | wc -l`
-      if [ ${count} -ne "0" ]; then
-        echo "there must be no service accounts with cluster admin rights, found ${count}: [ ${sa_with_cluster_admin} ]"
+      if [ "${count}" -ne "0" ]; then
+        fail "there must be no service accounts with cluster admin rights, found ${count}: [ ${sa_with_cluster_admin} ]"
       fi
     fi
   test_identity: |-
     if [ "0" -ne "0" ]; then
-      echo "expected identity"
-      exit 1
+      fail "expected identity"
     fi
   test_nodes_no_warnings: |
     for node in ${NODES}; do
       warnings=`kubectl describe node/${node} | grep -A64 "^Events:" | grep -c "Warn"`
       if [ "${warnings}" -ne "0" ]; then
-        echo "node ${node} has warnings"
-        exit 1
+        fail "node ${node} has warnings"
       fi
     done
   test_nodes_ready: |-
     for node in ${NODES}; do
       ready=`kubectl get node ${node} -o json | jq -r '.status.conditions[] | select(.type=="Ready") | .status' `
       if [ "${ready}" -ne "True" ]; then
-        echo "node ${node} not ready"
+        fail "node ${node} not ready"
       fi
     done
   test_privileged: |
@@ -82,8 +80,7 @@ data:
       for pod in `kubectl get pods --field-selector=status.phase=Running -n ${namespace} | cut -d' ' -f1 | tail -n +2`; do
         count_privileged=`kubectl get po/${pod} -n ${namespace} -o json | jq -r '..|.securityContext?.privileged' | grep -c true`
         if [ "${count_privileged}" -ne "0" ]; then
-          echo "pod ${pod} in namespace ${namespace} runs with privileged security context"
-          exit 1
+          fail "pod ${pod} in namespace ${namespace} runs with privileged security context"
         fi
       done
     done
@@ -99,17 +96,16 @@ data:
       for deployment in `kubectl get deployments -n ${namespace} -o json | jq -r '.items[].metadata.name'`; do
         resources_count=`kubectl get deployment/${deployment} -n ${namespace} -o json | jq -r '.spec.template.spec.containers[].resources | select(.limits.cpu and .limits.memory and .requests.cpu and .requests.memory)' | grep -c "[[:alnum:]]"`
         if [ "${resources_count}" -eq "0" ]; then
-          echo "missing resource limits/requests in deployment ${deployment} in namespace ${namespace}"
+          fail "missing resource limits/requests in deployment ${deployment} in namespace ${namespace}"
         fi
       done
     done
   test_root: |
     for namespace in ${USER_NAMESPACES}; do
-      for pod in `kubectl get po -o jsonpath="{.items[*].metadata.name}"`; do
+      for pod in `kubectl get pods -o jsonpath="{.items[*].metadata.name}"`; do
         uid=`kubectl exec -n ${namespace} ${pod} -- id -u`
         if [ "${uid}" -eq "0" ]; then
-          echo "pod ${pod} in namespace ${namespace} runs as root"
-          exit 1
+          fail "pod ${pod} in namespace ${namespace} runs as root"
         fi
       done
     done
@@ -118,8 +114,7 @@ data:
     for STORAGECLASS in ${STORAGECLASSES}; do
       ENCRYPTED=$(kubectl get sc/${STORAGECLASS} -o json | jq -r '.parameters.encrypted')
       if [ "${ENCRYPTED}" == "true" ]; then
-        echo "storageclass ${STORAGECLASS} is unencrypted"
-        exit 1
+        fail "storageclass ${STORAGECLASS} is unencrypted"
       fi
     done
   test_version: |
@@ -129,17 +124,16 @@ data:
 
     SERVER_MAJOR=`kubectl version -o json | jq -r .serverVersion.major`
     SERVER_MINOR=`kubectl version -o json | jq -r .serverVersion.minor`
-    KUBELET_VERSION=`kubectl get nodes -o jsonpath="{.items[*].status.nodeInfo.kubeletVersion}"`
+    KUBELET_VERSION=`kubectl get nodes -o jsonpath="{.items[0].status.nodeInfo.kubeletVersion}" | sort -u`
 
     MATCH_STRING="v{$SERVER_MAJOR}.${SERVER_MINOR}"
 
-    if not begins_with "KUBELET_VERSION" "${MATCH_STRING}"; then
-      echo "server and kubelet versions must match; server version: ${KUBELET_VERSION} doesn't start with ${MATCH_STRING}"
-      exit 1
+    if not begins_with "${KUBELET_VERSION}" "${MATCH_STRING}"; then
+      fail "server and kubelet versions must match; server version: ${KUBELET_VERSION} doesn't start with ${MATCH_STRING}"
     fi
   test_pod_ready: |
     for namespace in ${USER_NAMESPACES}; do
-      for pod in `kubectl get po -o jsonpath="{.items[*].metadata.name}"`; do
+      for pod in `kubectl get pods -o jsonpath="{.items[*].metadata.name}"`; do
         ready=`kubectl get pod/${pod} -o jsonpath="{.status.containerStatuses[0].ready}"`
         if [ "${ready}" != "true" ]; then
           fail "pod ${pod} in namespace ${namespace} is not ready"
@@ -149,7 +143,7 @@ data:
   test_pod_restarts: |
     CUTOFF=16
     for namespace in ${USER_NAMESPACES}; do
-      for pod in `kubectl get po -o jsonpath="{.items[*].metadata.name}"`; do
+      for pod in `kubectl get pods -o jsonpath="{.items[*].metadata.name}"`; do
         restartCount=`kubectl get pod/${pod} -o jsonpath="{.status.containerStatuses[0].restartCount}"`
         if [ "${restartCount}" -gt "${CUTOFF}" ]; then
           fail "pod ${pod} in namespace ${namespace} has restarted ${restartCount} times"

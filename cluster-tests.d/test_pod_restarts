@@ -1,0 +1,9 @@
+CUTOFF=16
+for namespace in ${USER_NAMESPACES}; do
+  for pod in `kubectl get po -o jsonpath="{.items[*].metadata.name}"`; do
+    restartCount=`kubectl get pod/${pod} -o jsonpath="{.status.containerStatuses[0].restartCount}"`
+    if [ "${restartCount}" -gt "${CUTOFF}" ]; then
+      fail "pod ${pod} in namespace ${namespace} has restarted ${restartCount} times"
+    fi
+  done
+done

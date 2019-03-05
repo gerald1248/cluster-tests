@@ -1,7 +1,7 @@
 for namespace in ${USER_NAMESPACES}; do
-  for pod in `kubectl get po --field-selector=status.phase=Running --no-headers -n ${namespace} 2>/dev/null | cut -d' ' -f1`; do
-    result=`kubectl get po/${pod} -n ${namespace} -o json | jq '.spec.containers[] | select(.readinessProbe and .livenessProbe)'`
-    if [ "${#result}" -eq 0 ]; then
+  for pod in `kubectl get pods --field-selector=status.phase=Running -n ${namespace} -o jsonpath="{.items[*].metadata.name}"`; do
+    result=`kubectl get pod/${pod} -n ${namespace} -o json | jq '.spec.containers[] | select(.readinessProbe and .livenessProbe)'`
+    if [ "${#result}" -eq "0" ]; then
       echo "pod ${pod} in namespace ${namespace} requires both liveness and readiness probes"
       exit 1
     fi
