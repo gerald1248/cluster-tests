@@ -1,5 +1,5 @@
 for namespace in ${USER_NAMESPACES}; do
-  for pod in `kubectl get po -o jsonpath="{.items[*].metadata.name}"`; do
+  for pod in `kubectl get pods -o jsonpath="{.items[*].metadata.name}"`; do
     ready=`kubectl get pod/${pod} -o jsonpath="{.status.containerStatuses[0].ready}"`
     if [ "${ready}" != "true" ]; then
       fail "pod ${pod} in namespace ${namespace} is not ready"

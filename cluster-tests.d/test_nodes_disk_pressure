@@ -1,0 +1,6 @@
+for node in ${NODES}; do
+  result=`kubectl get node ${node} -o jsonpath="{.status.conditions[?(@.type=='DiskPressure')].status}"`
+  if [ "${result}" != "False" ]; then
+    fail "node ${node} is under disk pressure"
+  fi
+done

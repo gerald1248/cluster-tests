@@ -1,5 +1,5 @@
 for namespace in ${USER_NAMESPACES}; do
-  for pod in `kubectl get po -o jsonpath="{.items[*].metadata.name}"`; do
+  for pod in `kubectl get pods -o jsonpath="{.items[*].metadata.name}"`; do
     uid=`kubectl exec -n ${namespace} ${pod} -- id -u`
     if [ "${uid}" -eq "0" ]; then
       fail "pod ${pod} in namespace ${namespace} runs as root"

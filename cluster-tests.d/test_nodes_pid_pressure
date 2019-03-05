@@ -1,0 +1,6 @@
+for node in ${NODES}; do
+  result=`kubectl get node ${node} -o jsonpath="{.status.conditions[?(@.type=='PIDPressure')].status}"`
+  if [ "${result}" != "False" ]; then
+    fail "node ${node} is under PID pressure"
+  fi
+done

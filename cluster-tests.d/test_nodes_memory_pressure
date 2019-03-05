@@ -1,0 +1,6 @@
+for node in ${NODES}; do
+  result=`kubectl get node ${node} -o jsonpath="{.status.conditions[?(@.type=='MemoryPressure')].status}"`
+  if [ "${result}" != "False" ]; then
+    fail "node ${node} is under memory pressure"
+  fi
+done

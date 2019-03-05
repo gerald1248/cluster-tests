@@ -1,6 +1,6 @@
 for node in ${NODES}; do
-  ready=`kubectl get node ${node} -o json | jq -r '.status.conditions[] | select(.type=="Ready") | .status' `
-  if [ "${ready}" -ne "True" ]; then
+  result=`kubectl get node ${node} -o jsonpath="{.status.conditions[?(@.type=='Ready')].status}"`
+  if [ "${result}" != "True" ]; then
     fail "node ${node} not ready"
   fi
 done
