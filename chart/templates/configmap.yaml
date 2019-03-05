@@ -4,22 +4,14 @@ metadata:
   name: {{ .Values.name | quote }}
   namespace: {{ .Values.namespace | quote }}
 data:
-  escalation_test: |-
-    for namespace in ${USER_NAMESPACES}; do
-      for pod in `kubectl get pods -o jsonpath="{.items[*].metadata.name}"`; do
-        count=`kubectl get po -n ${namespace} -o json | jq '.items[].spec.containers[] | select(.securityContext != "{}" and .securityContext != null and .securityContext.allowPrivilegeEscalation == true)' | wc -l`
-        if [ "${count}" -ne "0" ]; then
-          echo "pod ${pod} in namespace ${namespace} allows privilege escalation"
-          exit 1
-        fi
-      done
-    done
   get_context: |
     kubectl config current-context
   get_nodes: kubectl get nodes -o jsonpath="{.items[*].metadata.name}"
   get_user_namespaces: |
     kubectl get ns -o jsonpath="{.items[*].metadata.name}" | tr " " "\n" | grep -v "\(kube-public\|kube-system\)"
-  ha_test: |
+  ignore: |
+    test_identity
+  test_ha: |
     for svc in ${HA_SERVICES}; do
       nodes=`kubectl get po --all-namespaces -o wide | grep ${svc} | \
         awk '{ print $8 }'`
@@ -36,7 +28,7 @@ data:
         exit 1
       fi
     done
-  healthcheck_test: |
+  test_healthcheck: |
     for namespace in ${USER_NAMESPACES}; do
       for pod in `kubectl get pods --field-selector=status.phase=Running -n ${namespace} -o jsonpath="{.items[*].metadata.name}"`; do
         result=`kubectl get pod/${pod} -n ${namespace} -o json | jq '.spec.containers[] | select(.readinessProbe and .livenessProbe)'`
@@ -46,8 +38,6 @@ data:
         fi
       done
     done
-  ignore: |
-    test_identity
   test_cluster_admin_bindings: |
     sa_with_cluster_admin=`kubectl get clusterrolebindings -o wide | grep "cluster-admin" | awk '{ print $5 }' | grep "[[:alnum:]]" | sed 's/^/"/' | sed 's/$/"/'`
     trimmed=`echo "${sa_with_cluster_admin}" | tr -d '[[:space:]]'`
@@ -61,6 +51,16 @@ data:
     if [ "0" -ne "0" ]; then
       fail "expected identity"
     fi
+  test_escalation: |-
+    for namespace in ${USER_NAMESPACES}; do
+      for pod in `kubectl get pods -o jsonpath="{.items[*].metadata.name}"`; do
+        count=`kubectl get po -n ${namespace} -o json | jq '.items[].spec.containers[] | select(.securityContext != "{}" and .securityContext != null and .securityContext.allowPrivilegeEscalation == true)' | wc -l`
+        if [ "${count}" -ne "0" ]; then
+          echo "pod ${pod} in namespace ${namespace} allows privilege escalation"
+          exit 1
+        fi
+      done
+    done
   test_nodes_warnings: |
     for node in ${NODES}; do
       warnings=`kubectl describe node/${node} | grep -A64 "^Events:" | grep -c "Warn"`
