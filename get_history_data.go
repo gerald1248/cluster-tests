@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 )
 
-func getHistoryData() (ParsedHistory, error) {
-	files, err := filepath.Glob(fmt.Sprintf("%s/*.json", globalOutputdir))
+func getHistoryData(outputdir string) (ParsedHistory, error) {
+	files, err := filepath.Glob(fmt.Sprintf("%s/*.json", outputdir))
 	if err != nil {
 		return ParsedHistory{}, fmt.Errorf("can't glob output files (%s)", err.Error())
 	}

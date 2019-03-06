@@ -26,10 +26,10 @@ func callRunTests(param RunTestsParam) {
 	// then write out dashboard as static page
 	var pageBuffer string
 
-	history, err := getHistoryData()
+	history, err := getHistoryData(param.outputdir)
 	if err != nil {
 		sData := fmt.Sprintf("<p>Can't display dashboard: %s</p>", err.Error())
-		pageBuffer = fmt.Sprintf(pageMinimal(globalContext, sData))
+		pageBuffer = fmt.Sprintf(pageMinimal(param.context, sData))
 		return
 	}
 
@@ -60,9 +60,9 @@ func callRunTests(param RunTestsParam) {
 	if history.lastRecord.Fail > 0 {
 		bgColorClass = "bg-danger"
 	}
-	pageBuffer = fmt.Sprintf(page(globalContext, chart01, chart02, chart03, log, bgColorClass))
+	pageBuffer = fmt.Sprintf(page(param.context, chart01, chart02, chart03, log, bgColorClass))
 
-	filename := fmt.Sprintf("%s/index.html", globalOutputdir)
+	filename := fmt.Sprintf("%s/index.html", param.outputdir)
 	err = ioutil.WriteFile(filename, []byte(pageBuffer), 0644)
 	if err != nil {
 		fmt.Printf("can't write index file %s (%s)", filename, err.Error())
@@ -158,7 +158,7 @@ func runTests(param RunTestsParam) error {
 
 	record.Duration = int(time.Since(startTime).Nanoseconds() / 1000)
 
-	recordFilename := fmt.Sprintf("%s/%d.json", globalOutputdir, recordTime.Unix())
+	recordFilename := fmt.Sprintf("%s/%d.json", param.outputdir, recordTime.Unix())
 
 	total := failureCount + successCount
 	if total > maxCount {

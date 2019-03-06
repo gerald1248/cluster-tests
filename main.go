@@ -8,9 +8,7 @@ import (
 	"time"
 )
 
-var globalDatadir, globalOutputdir, globalContext string
-
-// run tests
+// run tests defined in datadir
 func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, `Usage: %s`, filepath.Base(os.Args[0]))
@@ -29,8 +27,8 @@ func main() {
 	duration := flag.Bool("-duration", true, "display duration chart")
 	histogram := flag.Bool("-histogram", false, "display histogram")
 
-	globalDatadir = *datadir
-	globalOutputdir = *outputdir
+	//globalDatadir = *datadir
+	//globalOutputdir = *outputdir
 
 	flag.Parse()
 
@@ -51,10 +49,10 @@ func main() {
 		}
 	}
 
-	globalContext = context
+	//globalContext = context
 	ticker := time.NewTicker(time.Millisecond * time.Duration(1000) * time.Duration(*interval))
 
-	runTestsParam := RunTestsParam{*datadir, *outputdir, *retain, *errors, *duration, *histogram}
+	runTestsParam := RunTestsParam{*datadir, *outputdir, context, *retain, *errors, *duration, *histogram}
 
 	// trigger initial run
 	go func() {
@@ -68,6 +66,6 @@ func main() {
 		}
 	}()
 
-	serve(*server, *port)
+	serve(*server, *port, *outputdir, context)
 	return
 }

@@ -44,6 +44,7 @@ type Metrics struct {
 type RunTestsParam struct {
 	datadir   string
 	outputdir string
+	context   string
 	retain    int
 	errors    bool
 	duration  bool

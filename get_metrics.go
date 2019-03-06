@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 )
 
-func getMetrics() (int, int, bool, error) {
-	files, err := filepath.Glob(fmt.Sprintf("%s/*.json", globalOutputdir))
+func getMetrics(outputdir string) (int, int, bool, error) {
+	files, err := filepath.Glob(fmt.Sprintf("%s/*.json", outputdir))
 	if err != nil {
 		return 0, 0, false, fmt.Errorf("can't glob output files (%s)", err.Error())
 	}
