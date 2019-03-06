@@ -27,9 +27,6 @@ func main() {
 	duration := flag.Bool("-duration", true, "display duration chart")
 	histogram := flag.Bool("-histogram", false, "display histogram")
 
-	//globalDatadir = *datadir
-	//globalOutputdir = *outputdir
-
 	flag.Parse()
 
 	// identify context/cluster name
@@ -49,7 +46,6 @@ func main() {
 		}
 	}
 
-	//globalContext = context
 	ticker := time.NewTicker(time.Millisecond * time.Duration(1000) * time.Duration(*interval))
 
 	runTestsParam := RunTestsParam{*datadir, *outputdir, context, *retain, *errors, *duration, *histogram}
