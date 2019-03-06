@@ -11,7 +11,7 @@ data:
     kubectl get ns -o jsonpath="{.items[*].metadata.name}" | tr " " "\n" | grep -v "\(kube-public\|kube-system\)"
   ignore: |
     test_identity
-  test_ha: |
+  test_services_ha: |
     for svc in ${HA_SERVICES}; do
       nodes=`kubectl get po --all-namespaces -o wide | grep ${svc} | \
         awk '{ print $8 }'`
@@ -28,7 +28,7 @@ data:
         exit 1
       fi
     done
-  test_healthcheck: |
+  test_pods_healthcheck: |
     for namespace in ${USER_NAMESPACES}; do
       for pod in `kubectl get pods --field-selector=status.phase=Running -n ${namespace} -o jsonpath="{.items[*].metadata.name}"`; do
         result=`kubectl get pod/${pod} -n ${namespace} -o json | jq '.spec.containers[] | select(.readinessProbe and .livenessProbe)'`
@@ -51,7 +51,7 @@ data:
     if [ "0" -ne "0" ]; then
       fail "expected identity"
     fi
-  test_escalation: |-
+  test_pods_escalation: |-
     for namespace in ${USER_NAMESPACES}; do
       for pod in `kubectl get pods -o jsonpath="{.items[*].metadata.name}"`; do
         count=`kubectl get po -n ${namespace} -o json | jq '.items[].spec.containers[] | select(.securityContext != "{}" and .securityContext != null and .securityContext.allowPrivilegeEscalation == true)' | wc -l`
@@ -103,7 +103,7 @@ data:
         fail "node ${node} is under PID pressure"
       fi
     done
-  test_privileged: |
+  test_pods_privileged: |
     for namespace in ${USER_NAMESPACES}; do
       for pod in `kubectl get pods --field-selector=status.phase=Running -n ${namespace} | cut -d' ' -f1 | tail -n +2`; do
         count_privileged=`kubectl get po/${pod} -n ${namespace} -o json | jq -r '..|.securityContext?.privileged' | grep -c true`
@@ -119,7 +119,7 @@ data:
         fail "resourcequota not set in namespace ${namespace}"
       fi
     done
-  test_resources: |
+  test_pods_resources: |
     for namespace in ${USER_NAMESPACES}; do
       for deployment in `kubectl get deployments -n ${namespace} -o json | jq -r '.items[].metadata.name'`; do
         resources_count=`kubectl get deployment/${deployment} -n ${namespace} -o json | jq -r '.spec.template.spec.containers[].resources | select(.limits.cpu and .limits.memory and .requests.cpu and .requests.memory)' | grep -c "[[:alnum:]]"`
@@ -128,7 +128,7 @@ data:
         fi
       done
     done
-  test_root: |
+  test_pods_root: |
     for namespace in ${USER_NAMESPACES}; do
       for pod in `kubectl get pods -o jsonpath="{.items[*].metadata.name}"`; do
         uid=`kubectl exec -n ${namespace} ${pod} -- id -u`
@@ -145,7 +145,7 @@ data:
         fail "storageclass ${STORAGECLASS} is unencrypted"
       fi
     done
-  test_version: |
+  test_kubelet_version: |
     begins_with() {
       case $2 in "$1"*) true;; *) false;; esac
     }
