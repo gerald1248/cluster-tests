@@ -73,10 +73,10 @@ var staticTextTerminalStylesheet = `<style>
 .term-fg9 { text-decoration: line-through; } /* crossed-out */
 
 .term-fg30 { color: #666; } /* black (but we can't use black, so a diff color) */
-.term-fg31 { color: #e74c3c; } /* match bootstrap theme red */
+.term-fg31 { color: #e74c3c; } /* match bootstrap theme red/danger */
 /* .term-fg31 { color: #ff4136; } */ /* preferred red */
 /* .term-fg31 { color: #e10c02; } */ /* red */
-.term-fg32 { color: #2ecc40; }
+.term-fg32 { color: #54b98f; } /* match bootstrap theme green/success */
 /* .term-fg32 { color: #99ff5e; } */ /* green */
 .term-fg33 { color: #c6c502; } /* yellow */
 .term-fg34 { color: #8db7e0; } /* blue */
@@ -391,7 +391,7 @@ var historyResultSpec = {
 				],
 				"range": [
 					"rgba(231, 76, 60, 0.8)",
-					"rgba(46, 204, 64, 0.8)"
+					"rgba(84, 185, 143, 0.8)"
 				]
 			}
 		}

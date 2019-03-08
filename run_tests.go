@@ -56,7 +56,7 @@ func callRunTests(param RunTestsParam) {
 
 	log := fmt.Sprintf(`<div class="term-container">%s</div>`, string(term.Render(terminalBytes)))
 
-	bgColorClass := "bg-secondary"
+	bgColorClass := "bg-success"
 	if history.lastRecord.Fail > 0 {
 		bgColorClass = "bg-danger"
 	}
