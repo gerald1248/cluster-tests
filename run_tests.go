@@ -131,17 +131,25 @@ func runTests(param RunTestsParam) error {
 			} else {
 				fmt.Printf("%s: %s\n", au.Bold(au.Red("failed")), message)
 			}
-			failureCount++
+
+			// observe return value
+			returnValue, err := extractReturnValue(err)
+			if err != nil {
+				returnValue = 1
+			}
+
+			failureCount += returnValue
 
 			// append to failure log
 			record.FailLog = append(record.FailLog, fmt.Sprintf("%s %s %s", basename, au.Bold(au.Red("failed")), au.Bold(au.Cyan(message))))
 
 			// update histogram
 			if value, ok := record.Histogram[basename]; ok {
-				record.Histogram[basename] = value + 1
+				record.Histogram[basename] = value + returnValue
 			} else {
-				record.Histogram[basename] = 1
+				record.Histogram[basename] = returnValue
 			}
+
 		} else {
 			fmt.Printf("%s\n", au.Bold(au.Green("ok")))
 			successCount++
