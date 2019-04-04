@@ -7,5 +7,6 @@
   "interval_seconds": "600",
   "retain_days": "1",
   "datadir": "/app/cluster-tests.d",
-  "outputdir": "/app/output"
+  "outputdir": "/app/output",
+  "cache": "false"
 }

@@ -25,7 +25,7 @@ spec:
       - name: {{ .Values.name | quote }}
         image: gerald1248/cluster-tests:latest
         command: [ "cluster-tests" ]
-        args: [ "-d={{ .Values.datadir }}", "-o={{ .Values.outputdir }}", "-i={{ .Values.interval_seconds }}", "-r={{ .Values.retain_days }}" ]
+        args: [ "-d={{ .Values.datadir }}", "-o={{ .Values.outputdir }}", "-i={{ .Values.interval_seconds }}", "-r={{ .Values.retain_days }}", "-c={{ .Values.cache }}" ]
         resources:
           limits:
             cpu: 200m
