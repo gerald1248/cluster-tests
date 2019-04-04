@@ -91,7 +91,7 @@ func runTests(param RunTestsParam) error {
 		return fmt.Errorf("can't fetch cluster nodes (%s)", err.Error())
 	}
 
-	var successCount, failureCount, maxCount int
+	var successCount, failureCount, maxCount, testCount int
 	successCount = 0
 	failureCount = 0
 	maxCount = 0
@@ -118,6 +118,7 @@ func runTests(param RunTestsParam) error {
 		fmt.Printf("[%s] %s... ", t.Format("2006-01-02 15:04:05"), au.Bold(au.Cyan(basename)))
 
 		stdout, stderr, err := execTestShellScript(match)
+		testCount++
 
 		if err != nil {
 			message := strings.TrimRight(stdout, " \n")
@@ -173,10 +174,10 @@ func runTests(param RunTestsParam) error {
 		maxCount = total
 	}
 	plural := "s"
-	if total == 1 {
+	if testCount == 1 {
 		plural = ""
 	}
-	fmt.Printf("Ran %d test%s\n", total, plural)
+	fmt.Printf("Ran %d test%s\n", testCount, plural)
 
 	if failureCount == 0 {
 		record.Head = fmt.Sprintf("%s\n", au.Bold(au.Green("OK")))
