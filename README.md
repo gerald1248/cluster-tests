@@ -20,6 +20,7 @@ Usage
 ```
 Usage: cluster-tests  -d string
         data directory (default "cluster-tests.d")
+  -c    cache pod and node data as POD_CACHE and NODE_CACHE
   -e    output stderr
   -i int
         interval (s) (default 3600)
@@ -38,7 +39,7 @@ Usage: cluster-tests  -d string
 Dashboard
 ---------
 
-The default dashboard shows the results of the latest test run on the right and three visualisations on the left. The first chart tracks the number of successful and failed tests over a configurable period of time; the second follows the time taken by these test runs; the last is a histogram of all tests with errors in the period under observation.
+The default dashboard shows the results of the latest test run on the right and three visualisations on the left. The first chart tracks the number of successful and failed tests over a configurable period of time; the second follows the time taken by these test runs; the last (hidden by default) is a histogram of all tests with errors in the period under observation.
 
 Other endpoints
 ---------------
@@ -77,6 +78,13 @@ done
 `fail` takes exactly one parameter (the desired error string) and can be invoked as many times as necessary in the course of a single test. Error messages are appended, separated by semicolons, and the exit value signals the number of errors found.
 
 Again, users are free to choose either a plain `exit 1` or the more flexible `fail "pod ${pod} in namespace ${namespace} is set to run in privileged security context"`.
+
+Writing tests
+-------------
+
+For examples of tests, see the preset tests in folder `cluster-tests.d`. Ensure that the filename begins "test".
+
+In addition to the built-in function `fail()` and the environment variables `${NODES}` and `${USER_NAMESPACES}`, you can cache all pod and node data (in JSON) using the `-c` command line switch. When activated, the variables `${POD_CACHE}` and `${NODE_CACHE}` are available to you when writing tests. Use `jq` in your tests to query the cached data.
 
 Build
 -----

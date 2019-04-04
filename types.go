@@ -49,6 +49,7 @@ type RunTestsParam struct {
 	errors    bool
 	duration  bool
 	histogram bool
+	cache     bool
 }
 
 // ParsedHistory prevents a lengthy list of return values from getHistoryData()

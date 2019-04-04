@@ -26,6 +26,7 @@ func main() {
 	name := flag.String("n", "", "context name")
 	duration := flag.Bool("-duration", true, "display duration chart")
 	histogram := flag.Bool("-histogram", false, "display histogram")
+	cache := flag.Bool("c", false, "cache pod and node data in POD_CACHE and NODE_CACHE")
 
 	flag.Parse()
 
@@ -48,7 +49,7 @@ func main() {
 
 	ticker := time.NewTicker(time.Millisecond * time.Duration(1000) * time.Duration(*interval))
 
-	runTestsParam := RunTestsParam{*datadir, *outputdir, context, *retain, *errors, *duration, *histogram}
+	runTestsParam := RunTestsParam{*datadir, *outputdir, context, *retain, *errors, *duration, *histogram, *cache}
 
 	// trigger initial run
 	go func() {

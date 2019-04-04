@@ -91,6 +91,19 @@ func runTests(param RunTestsParam) error {
 		return fmt.Errorf("can't fetch cluster nodes (%s)", err.Error())
 	}
 
+	if param.cache {
+		podCache, _, err := execShellScript(fmt.Sprintf("%s/get_pod_cache", param.datadir))
+		if err != nil {
+			return fmt.Errorf("can't store pod cache")
+		}
+		os.Setenv("POD_CACHE", podCache)
+		nodeCache, _, err := execShellScript(fmt.Sprintf("%s/get_node_cache", param.datadir))
+		if err != nil {
+			return fmt.Errorf("can't store node cache")
+		}
+		os.Setenv("NODE_CACHE", nodeCache)
+	}
+
 	var successCount, failureCount, maxCount, testCount int
 	successCount = 0
 	failureCount = 0

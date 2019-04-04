@@ -20,6 +20,7 @@ func TestRunTests(t *testing.T) {
 		false,
 		false,
 		false,
+		false,
 	}
 
 	prepareTest(param)
@@ -40,6 +41,7 @@ func TestRunTestsInvalidOutputdir(t *testing.T) {
 		outputdir,
 		context,
 		retain,
+		false,
 		false,
 		false,
 		false,
