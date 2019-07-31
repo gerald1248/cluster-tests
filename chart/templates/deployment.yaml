@@ -19,7 +19,10 @@ spec:
       labels:
         app: {{ .Values.name | quote }}
     spec:
-      serviceAccountname: {{ .Values.name | quote }}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
       serviceAccount: {{ .Values.name | quote }}
       containers:
       - name: {{ .Values.name | quote }}
